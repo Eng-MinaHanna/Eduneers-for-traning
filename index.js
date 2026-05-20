@@ -306,7 +306,8 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
           google.accounts.id.initialize({
             client_id: "199540075185-0s74k90bdpodvtnao1ce7euec2o0vr31.apps.googleusercontent.com",
             callback: handleGoogleLogin,
-            cancel_on_tap_outside: false
+            cancel_on_tap_outside: false,
+            use_fedcm: true
           });
           google.accounts.id.renderButton(
             document.getElementById("googleBtnWrapper"),
