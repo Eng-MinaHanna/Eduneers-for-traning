@@ -1,0 +1,60 @@
+{
+  "name": "Eduneers - نظام الحضور والتقييم",
+  "short_name": "Eduneers",
+  "description": "نظام متكامل لإدارة الحضور والتقييم للطلاب والمدربين",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Eduneers Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "مسح QR",
+      "short_name": "QR",
+      "description": "فتح كاميرا المسح الضوئي",
+      "url": "/index.html",
+      "icons": [{ "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png", "sizes": "192x192" }]
+    },
+    {
+      "name": "التسجيل اليدوي",
+      "short_name": "يدوي",
+      "description": "التسجيل اليدوي للحضور",
+      "url": "/index.html",
+      "icons": [{ "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png", "sizes": "192x192" }]
+    },
+    {
+      "name": "نظام الدرجات",
+      "short_name": "درجات",
+      "description": "رصد التقييمات والدرجات",
+      "url": "/grades.html",
+      "icons": [{ "src": "https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png", "sizes": "192x192" }]
+    }
+  ]
+}
