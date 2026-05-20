@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title> Eduneers | Grades System </title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="grades.css?v=1.0.5">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+</head>
+
+<body class="dark-mode">
+
+    <div id="particles-js"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; pointer-events:none;"></div>
+    <div class="circuit-bg"></div>
+
+    <div id="loader">
+        <div
+            style="width:60px; height:60px; margin-bottom:20px; position:relative; display:flex; justify-content:center; align-items:center;">
+            <div
+                style="position:absolute; width:100%; height:100%; border:2px solid var(--electric-blue); border-radius:50%; opacity:0.6; animation: spin 2s linear infinite;">
+            </div>
+            <div
+                style="width:12px; height:12px; background:var(--electric-blue); border-radius:50%; box-shadow: 0 0 20px var(--electric-blue);">
+            </div>
+        </div>
+        <div id="loaderMsg" style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">جاري تجميع حزم البيانات...
+        </div>
+        <div class="bar-bg">
+            <div class="bar-fill" id="barFill"></div>
+        </div>
+        <div style="font-size: 24px; font-weight: 900; font-family: monospace; color: var(--electric-blue);"
+            id="percent">0%</div>
+    </div>
+
+    <div class="navbar">
+        <div class="nav-content">
+            <div class="nav-brand">
+                <h2>⚡ <span class="brand-text">Eduneers</span> <span id="welcomeName"
+                        style="font-size: 11px; opacity:0.7;"></span></h2>
+            </div>
+            <div class="nav-actions">
+                <select id="globalGroupSelect" class="cross-group-only"
+                    style="background: rgba(192, 132, 252, 0.1); border: 1px solid rgba(192, 132, 252, 0.4); color: #c084fc; border-radius: 8px; padding: 0 10px; height: 28px; font-size: 11px; font-weight: 800; cursor: pointer; outline: none; margin: 0 5px; display: none; box-sizing: border-box; align-self: center; flex-shrink: 0;"
+                    onchange="changeGlobalGroup(this.value)"></select>
+                <span id="groupBadge" class="nav-badge group-badge"
+                    style="font-size: 11px; font-weight: 800; background: rgba(0, 210, 255, 0.1); color: var(--electric-blue); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0, 210, 255, 0.3); display: none; white-space: nowrap; flex-shrink: 0;"></span>
+                <span id="roleBadge" class="nav-badge role-badge"
+                    style="font-size: 11px; font-weight: 800; background: rgba(245, 176, 65, 0.1); color: var(--accent); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(245, 176, 65, 0.3); display: none; white-space: nowrap; flex-shrink: 0;"></span>
+                <button class="nav-btn" onclick="toggleDarkMode()">🌓</button>
+                <button class="nav-btn" onclick="toggleSidebar()">☰</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <button class="close-btn" onclick="toggleSidebar()">×</button>
+        <div
+            style="padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px;">
+            <div style="font-weight: 900; color: var(--electric-blue); font-size: 1.3rem;">Eduneers System</div>
+            <div id="sideRole"
+                style="font-size: 10px; opacity: 0.7; margin-top: 5px; text-transform: uppercase; background: rgba(255,255,255,0.1); display: inline-block; padding: 4px 10px; border-radius: 8px;">
+            </div>
+        </div>
+
+        <!-- Attendance Section -->
+        <div
+            style="margin: 10px 15px; border-radius: 12px; border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.05); overflow: hidden;">
+            <div
+                style="background: rgba(0, 210, 255, 0.1); padding: 8px 15px; font-weight: 900; color: #00d2ff; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(0, 210, 255, 0.1);">
+                📷 قسم الحضور</div>
+            <div style="padding: 5px 0;">
+                <a href="#" onclick="gotoView('index.html', 'scanner')" id="nav-scanner"><span>📷</span> <span>مسح الـ
+                        QR</span></a>
+                <a href="#" onclick="gotoView('index.html', 'manual')" id="nav-manual"><span>✍️</span> <span>التسجيل
+                        اليدوي السريع</span></a>
+                <a href="#" onclick="gotoView('index.html', 'dashboard')" id="nav-dashboard"><span>📊</span> <span>لوحة
+                        الحضور</span></a>
+                <a href="#" onclick="gotoView('index.html', 'analytics')" id="nav-analytics"
+                    class="manager-only"><span>📈</span> <span>إحصائيات الجروبات</span></a>
+                <a href="#" onclick="gotoView('index.html', 'mail')" id="nav-mail" class="manager-only"><span>📧</span>
+                    <span>الإعلانات والبريد</span></a>
+            </div>
+        </div>
+
+        <!-- Grades Section -->
+        <div class="manager-only"
+            style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(192, 132, 252, 0.3); box-shadow: 0 0 15px rgba(192, 132, 252, 0.05); overflow: hidden;">
+            <div
+                style="background: rgba(192, 132, 252, 0.1); padding: 8px 15px; font-weight: 900; color: #c084fc; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(192, 132, 252, 0.1);">
+                🎯 قسم الدرجات والتقييم</div>
+            <div style="padding: 5px 0;">
+                <a href="#" onclick="gotoView('grades.html', 'grading')" id="nav-grading"><span>📝</span> <span>رصد
+                        الدرجات</span></a>
+                <a href="#" onclick="gotoView('grades.html', 'studentDashboard')" id="nav-studentDashboard"><span>📊</span> <span>لوحة درجات الطلاب</span></a>
+                <a href="#" onclick="gotoView('grades.html', 'searchView')" id="nav-searchView"><span>🔍</span>
+                    <span>استعلام عن طالب</span></a>
+                <a href="#" onclick="gotoView('grades.html', 'topView')" id="nav-topView"
+                    class="manager-only"><span>🏆</span> <span>لوحة الشرف Top 5</span></a>
+                <a href="#" onclick="gotoView('grades.html', 'settings')" id="nav-settings"
+                    class="manager-only"><span>⚙️</span> <span>إعدادات النظام</span></a>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div class="admin-only"
+            style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(245, 176, 65, 0.3); box-shadow: 0 0 15px rgba(245, 176, 65, 0.05); overflow: hidden;">
+            <div
+                style="background: rgba(245, 176, 65, 0.1); padding: 8px 15px; font-weight: 900; color: #f5b041; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(245, 176, 65, 0.1);">
+                ⚙️ الإدارة العليا</div>
+            <div style="padding: 5px 0;">
+                <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" class="admin-only"><span>👥</span>
+                    <span>إدارة المستخدمين</span></a>
+            </div>
+        </div>
+
+        <a href="#" onclick="logout()"
+            style="color: #ef4444; margin: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; text-align: center; justify-content: center;"><span>🚪</span>
+            <span>تسجيل الخروج</span></a>
+        <div style="height: 100px; flex-shrink: 0;"></div>
+    </div>
+
+    <div class="container">
+        <div id="toast"></div>
+
+        <div class="manager-only">
+        </div>
+
+        <div id="view-grading" class="view-section active">
+            <div style="max-width: 500px; margin: auto;">
+                <h3
+                    style="color:var(--electric-blue); text-align:center; font-size:24px; font-weight:800; margin-bottom:20px;">
+                    رصد تقييم المحاضرة</h3>
+
+                <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">رقم كود الطالب</label>
+                <input type="text" id="studentCode" placeholder="أدخل الرقم فقط (مثال: 15)"
+                    style="font-size:1.4rem; letter-spacing: 2px;">
+
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">رقم المحاضرة
+                        المستهدفة</label>
+                    <select id="currentLecNum" style="margin-bottom:0;">
+                    </select>
+                </div>
+
+                <div class="grid-3">
+                    <div class="toggle-btn" id="attBtn" onclick="this.classList.toggle('active-att')">👤 حضور (15)</div>
+                    <div class="toggle-btn" id="feedBtn" onclick="this.classList.toggle('active-feed')">💬 فيدباك (5)
+                    </div>
+                    <div class="toggle-btn" id="attitBtn" onclick="this.classList.toggle('active-attit')">⭐ سلوك (5)
+                    </div>
+                </div>
+
+                <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">بونص إضافي (Bonus)</label>
+                <input type="number" id="valBonus" placeholder="0">
+
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
+
+                <div class="grid-2">
+                    <div><label style="font-size:13px; font-weight:bold; color:var(--text-muted);">درجة
+                            التاسك</label><input type="number" id="valTask" placeholder="من 70"></div>
+                    <div><label style="font-size:13px; font-weight:bold; color:var(--text-muted);">درجة
+                            الكويز</label><input type="number" id="valQuiz" placeholder="الدرجة"></div>
+                </div>
+
+                <button class="btn-submit mutator" onclick="submitData()">حفظ وإرسال التقييم 📡</button>
+            </div>
+        </div>
+
+        <div id="view-searchView" class="view-section">
+            <div style="max-width: 500px; margin: auto;">
+                <h3 style="color:var(--accent); text-align:center; font-size:24px; font-weight:800;">استعلام شامل عن
+                    متدرب</h3>
+
+                <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">رقم الطالب</label>
+                <input type="text" id="searchCode" placeholder="أدخل الرقم...">
+
+                <div class="filter-box">
+                    <label style="font-size:13px; font-weight:bold;">حصر التقييم من محاضرة</label>
+                    <div>
+                        <input type="number" id="sfL" value="1" class="small-input"> إلى <input type="number" id="stL"
+                            value="5" class="small-input">
+                    </div>
+                </div>
+
+                <button class="btn-submit"
+                    style="background: linear-gradient(135deg, var(--accent), #d97706); color:#000;"
+                    onclick="searchStudent()">🔍 ابدأ التحليل</button>
+
+                <div id="searchResult"
+                    style="display:none; margin-top:25px; background:rgba(0,0,0,0.02); padding:20px; border-radius:16px; border:1px solid rgba(0,0,0,0.05);">
+                    <div id="resName"
+                        style="font-weight:900; color:var(--electric-blue); text-align:center; font-size:1.4rem;"></div>
+                    <div style="text-align:center; margin:15px 0;"><span
+                            style="background:var(--accent); color:#000; padding:8px 25px; border-radius:50px; font-weight:900; box-shadow:0 4px 10px rgba(245, 176, 65, 0.3);">إجمالي
+                            النقاط: <span id="resTotal" style="font-size:1.2rem;">0</span></span></div>
+                    <table class="res-table">
+                        <thead>
+                            <tr>
+                                <th>بند التقييم</th>
+                                <th>النقاط المكتسبة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resDetails"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-studentDashboard" class="view-section">
+            <div style="max-width: 900px; margin: auto;">
+                <h3 style="color:var(--electric-blue); text-align:center; font-size:26px; font-weight:900; margin-bottom:10px;">
+                    📊 لوحة درجات وتقييم الطلاب
+                </h3>
+                <p style="color:var(--text-muted); text-align:center; font-size:14px; margin-bottom:25px;">
+                    رصد حضور وتاسكات وكويزات المتدربين للمحاضرة النشطة متوافق تماماً مع السيرفر المركزي
+                </p>
+
+                <!-- Dashboard Controls -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 18px; backdrop-filter: blur(20px); margin-bottom: 25px;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: end; flex-wrap: wrap;">
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">البحث عن متدرب:</label>
+                            <input type="text" id="dbSearchInput" placeholder="ابحث بالاسم أو رقم كود الطالب..." oninput="filterDashboardStudents()" style="margin: 0; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">المحاضرة المستهدفة:</label>
+                            <select id="dbLecSelect" style="margin: 0; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;" onchange="onDashboardLectureChange()">
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-submit" onclick="toggleDashboardSort()" style="margin: 0; padding: 12px; font-size: 13px; flex: 1; min-width: 110px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 10px;">
+                                <span id="dbSortText">تصاعدي بالكود 🔢</span>
+                            </button>
+                            <button class="btn-submit" onclick="loadDashboardStudents(false)" style="margin: 0; padding: 12px; font-size: 13px; background: var(--electric-blue); color: #000; border-radius: 10px;">
+                                🔄 تحديث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Switcher -->
+                <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 25px;">
+                    <button id="btnViewCards" onclick="switchDashboardTab('cards')" class="btn-submit" style="margin: 0; padding: 12px 20px; font-size: 13px; font-weight: bold; background: var(--electric-blue); color: #000; border-radius: 10px; flex: 1; max-width: 250px; transition: all 0.3s ease; border: none; cursor: pointer;">
+                        📦 بطاقات المتدربين السريعة
+                    </button>
+                    <button id="btnViewExcel" onclick="switchDashboardTab('excel')" class="btn-submit" style="margin: 0; padding: 12px 20px; font-size: 13px; font-weight: bold; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); color: #fff; border-radius: 10px; flex: 1; max-width: 250px; transition: all 0.3s ease; cursor: pointer;">
+                        📊 شيت التقييم الشامل (Excel)
+                    </button>
+                </div>
+
+                <!-- Students Grid -->
+                <div id="dbStudentsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted); font-size: 15px;">
+                        ⏳ جاري تحميل قائمة المتدربين من السيرفر المركزي...
+                    </div>
+                </div>
+
+                <!-- Excel Grid Sheet -->
+                <div id="dbExcelContainer" style="display: none; background: rgba(255,255,255,0.01); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 20px; backdrop-filter: blur(20px); margin-bottom: 25px;">
+                    <div id="excelHeaderInfo" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;" dir="rtl">
+                        <span style="font-size: 13px; color: var(--text-muted); font-weight: bold;">
+                            💡 يمكنك رصد أو تعديل درجات أي متدرب مباشرة في الجدول وسيتم حساب المجموع تلقائياً، اضغط على زر حفظ لحفظ المتدرب.
+                        </span>
+                        <span id="excelLecBadge" style="font-size: 12px; font-weight: 800; background: rgba(0, 210, 255, 0.1); color: var(--electric-blue); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0, 210, 255, 0.3);">
+                            المحاضرة النشطة: 1
+                        </span>
+                    </div>
+                    
+                    <div style="overflow-x: auto; max-height: 70vh; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);" class="custom-scrollbar">
+                        <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 12px; min-width: 1000px;" dir="rtl">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); background: rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 10;">
+                                    <th style="padding: 14px 10px; font-weight: 900; width: 80px; text-align: center;">الكود</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; min-width: 180px;">اسم المتدرب</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 90px;">حضور (15)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 100px;">تاسك (70)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 100px;">كويز (25)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 90px;">فيدباك (5)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 90px;">سلوك (5)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 100px;">بونص</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 100px;">المجموع (130)</th>
+                                    <th style="padding: 14px 10px; font-weight: 900; text-align: center; width: 110px;">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="excelRowsContainer">
+                                <tr>
+                                    <td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px;">
+                                        ⏳ جاري تحميل البيانات المجمعة من السيرفر للمحاضرة النشطة...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Editor Modal for Dashboard -->
+        <div id="dbGradeModal" class="modal-overlay" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
+            <div class="glass-panel" style="max-width: 500px; width: 90%; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; max-height: 90vh; overflow-y: auto; text-align: right;" dir="rtl">
+                <h3 style="color:var(--accent); text-align:center; font-size:22px; font-weight:900; margin-top:0; margin-bottom:5px;">رصد تقييم المتدرب</h3>
+                <h4 id="dbModalStudentName" style="color:#fff; text-align:center; margin-top:0; margin-bottom:15px; font-size:16px;">طالب غير معروف</h4>
+                
+                <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: var(--text-muted); font-size: 13px;">المحاضرة المستهدفة: </span>
+                    <span id="dbModalLecNum" style="color: var(--electric-blue); font-weight: bold; font-size: 14px;">محاضرة 1</span>
+                </div>
+
+                <div class="grid-3" style="margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <div class="toggle-btn" id="dbModalAttBtn" onclick="this.classList.toggle('active-att')" style="padding: 12px 5px; text-align: center; cursor: pointer; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: bold; transition: all 0.3s ease;">👤 حضور (15)</div>
+                    <div class="toggle-btn" id="dbModalFeedBtn" onclick="this.classList.toggle('active-feed')" style="padding: 12px 5px; text-align: center; cursor: pointer; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: bold; transition: all 0.3s ease;">💬 فيدباك (5)</div>
+                    <div class="toggle-btn" id="dbModalAttitBtn" onclick="this.classList.toggle('active-attit')" style="padding: 12px 5px; text-align: center; cursor: pointer; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); font-size: 12px; font-weight: bold; transition: all 0.3s ease;">⭐ سلوك (5)</div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size:13px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">بونص إضافي (Bonus)</label>
+                    <input type="number" id="dbModalValBonus" placeholder="0" style="margin: 0; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">درجة التاسك</label>
+                        <input type="number" id="dbModalValTask" placeholder="من 70" style="margin: 0; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">درجة الكويز</label>
+                        <input type="number" id="dbModalValQuiz" placeholder="الدرجة" style="margin: 0; width: 100%; box-sizing: border-box; padding: 12px; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 25px;">
+                    <button class="btn-submit mutator" style="background: var(--accent); color:#000; margin: 0; flex: 1; border-radius: 10px;" onclick="saveDashboardStudentGrade()">حفظ التقييم 💾</button>
+                    <button class="btn-submit" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color:#fff; margin: 0; flex: 1; border-radius: 10px;" onclick="closeDashboardGradeModal()">إغلاق ✖️</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-topView" class="view-section manager-only">
+            <div style="max-width: 600px; margin: auto;">
+                <h3
+                    style="color:var(--electric-blue); text-align:center; font-size:26px; font-weight:900; margin-bottom:20px;">
+                    🏆 لوحة متفوقي الجروب</h3>
+
+                <div class="filter-box">
+                    <label style="font-size:14px; font-weight:bold; margin-bottom:10px; display:block;">تحديد النطاق
+                        الزمني للتقييم</label>
+                    <div style="display:flex; justify-content:center; align-items:center; gap:10px;">
+                        من <input type="number" id="fL" value="1" class="small-input"> إلى <input type="number" id="tL"
+                            value="5" class="small-input">
+                    </div>
+                    <div style="font-size: 10px; margin-top: 10px; opacity: 0.7;">(يتم تجميع نقاط: الحضور + الفيدباك +
+                        السلوك + البونص + التاسكات + الكويزات)</div>
+                </div>
+
+                <button class="btn-submit" style="background: linear-gradient(135deg, #10b981, #059669);"
+                    onclick="extractLeaderboard()">استخراج ترتيب الجروب 🚀</button>
+
+                <div class="search-box" style="position:relative; margin-top:20px;">
+                    <input type="text" id="searchLeaderInput" placeholder="بحث بالاسم أو الكود للفلترة السريعة..."
+                        onkeyup="filterLeaderboard()"
+                        style="margin:0; padding:15px; padding-right:45px; box-sizing:border-box; width:100%; text-align: right;">
+                    <span style="position:absolute; right:15px; top:17px; opacity:0.5;">🔍</span>
+                </div>
+
+                <div id="leaderboard" style="margin-top: 25px;"></div>
+
+                <div id="chartWrapper" style="display:none;">
+                    <div class="chart-container"><canvas id="topChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section manager-only">
+            <div class="dashboard-header" style="text-align: center; margin-bottom: 30px;">
+                <h3 style="font-size: 28px; font-weight: 900; color: var(--electric-blue); margin-bottom: 8px;">🔗 لوحة تحكم روابط الجروب والطلاب</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0;">قم بإدارة وربط قواعد البيانات والملفات المركزية والطلاب الفردية بنقرة واحدة</p>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 25px;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 16px; text-align: center; backdrop-filter: blur(10px);">
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 6px;">الجروب الحالي</div>
+                    <div id="settings-stat-group" style="font-size: 20px; font-weight: 900; color: var(--accent);">Group A</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 16px; text-align: center; backdrop-filter: blur(10px);">
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 6px;">الطلاب المربوطين</div>
+                    <div id="settings-stat-students" style="font-size: 22px; font-weight: 900; color: var(--electric-blue);">0</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 16px; text-align: center; backdrop-filter: blur(10px);">
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 6px;">حالة الاتصال</div>
+                    <div id="settings-stat-health" style="font-size: 14px; font-weight: bold; color: #10b981; display: flex; align-items: center; justify-content: center; gap: 4px; padding-top: 4px;">
+                        <span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 8px #10b981;"></span> متصل بالشبكة
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 25px; max-width: 900px; margin: auto;">
+                
+                <!-- Active Group Connection Card -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 25px; border-radius: 20px; backdrop-filter: blur(20px);">
+                    <h4 style="margin-top:0; color:var(--accent); font-size:18px; display:flex; align-items:center; gap:8px;">
+                        <span>📦</span> شيت الجروب المركزي المعتمد
+                    </h4>
+                    <p style="font-size: 12px; opacity:0.8; margin-bottom: 20px; line-height: 1.6; color: var(--text-muted);">
+                        رابط السكربت البرمجي المركزي (API Web App) الخاص بهذا الجروب، والذي يقوم بمزامنة درجات وتاسكات وحضور جميع طلاب الجروب.
+                    </p>
+
+                    <div style="margin-bottom:15px;">
+                        <label style="font-size:13px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:8px;">رابط الـ API لشيت الجروب الحالي:</label>
+                        <input type="text" id="groupApiInput" placeholder="ضع رابط سكربت الدبلومة للجروب هنا..."
+                            style="font-size:12px; width:100%; border:1px solid rgba(245, 176, 65, 0.2); background: rgba(0,0,0,0.2); color:#fff; padding:12px; border-radius:10px; box-sizing:border-box;">
+                    </div>
+
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
+                        <button class="btn-submit mutator"
+                            style="background: var(--accent); color:#000; font-size:13px; padding: 12px 20px; margin:0; flex: 1; min-width: 150px;"
+                            onclick="saveGroupApi()">حفظ الرابط الجديد 💾</button>
+                        
+                        <button class="btn-submit"
+                            style="background: linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-size:13px; padding: 12px 20px; margin:0; flex: 1; min-width: 150px;"
+                            onclick="testGroupConnection()">اختبار الاتصال ⚡</button>
+                        
+                        <button class="btn-submit mutator"
+                            style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color:#f87171; font-size:13px; padding: 12px 20px; margin:0; flex: 0 0 auto;"
+                            onclick="resetGroupApi()">إعادة تعيين 🔄</button>
+                    </div>
+                </div>
+
+                <!-- Mapped Student Sheets Card -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255, 255, 255, 0.08); padding: 25px; border-radius: 20px; backdrop-filter: blur(20px);">
+                    <h4 style="margin-top:0; color:var(--electric-blue); font-size:18px; display:flex; align-items:center; gap:8px;">
+                        <span>🎓</span> لوحة ربط الشيتات الفردية للطلاب
+                    </h4>
+                    <p style="font-size: 12px; opacity:0.8; margin-bottom: 20px; line-height: 1.6; color: var(--text-muted);">
+                        اربط الأكواد الخاصة بالطلاب بالروابط الفردية لملفاتهم الخاصة (تتكون من 6 صفوف). يمكنك إضافة أو تحديث أي ربط مباشرة من هذا نموذج.
+                    </p>
+
+                    <!-- Add student link fields -->
+                    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:12px; margin-bottom:20px;">
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">كود الطالب:</label>
+                            <input type="text" id="targetStudentCode" placeholder="مثال: K1"
+                                style="font-size:12px; width:100%; border:1px solid rgba(0, 210, 255, 0.2); background: rgba(0,0,0,0.2); color:#fff; padding:12px; border-radius:10px; box-sizing:border-box; text-align:center;">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رابط الـ API الفردي للملف:</label>
+                            <input type="text" id="personalApiInput" placeholder="ضع رابط الـ API الفردي هنا..."
+                                style="font-size:12px; width:100%; border:1px solid rgba(0, 210, 255, 0.2); background: rgba(0,0,0,0.2); color:#fff; padding:12px; border-radius:10px; box-sizing:border-box;">
+                        </div>
+                    </div>
+                    
+                    <button class="btn-submit mutator"
+                        style="background: var(--electric-blue); color:#000; font-size:13px; padding: 12px; margin:0 0 25px 0; width:100%;"
+                        onclick="savePersonalApi()">ربط ومزامنة شيت الطالب 🔗</button>
+
+                    <!-- Mapped Student List Monitor -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top:20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                            <div style="font-size:14px; font-weight:bold; color:#fff;">📋 قائمة الطلاب المربوطين حالياً:</div>
+                            
+                            <!-- Local filter for table -->
+                            <div class="search-box" style="margin:0; width: 250px; position:relative;">
+                                <input type="text" id="searchLinksInput" placeholder="بحث بكود الطالب..."
+                                    onkeyup="filterLinksMonitorTable()"
+                                    style="margin:0; padding:8px 12px; padding-right:32px; font-size:11px; width:100%; box-sizing:border-box; text-align:right;">
+                                <span style="position:absolute; right:10px; top:8px; opacity:0.5; font-size:11px;">🔍</span>
+                            </div>
+                        </div>
+
+                        <div style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 5px;">
+                            <!-- Responsive modern table style -->
+                            <table style="width:100%; border-collapse:collapse; text-align:right; font-size:12px;" dir="rtl">
+                                <thead>
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.08); color:var(--text-muted);">
+                                        <th style="padding:10px; font-weight:bold; width: 20%;">كود الطالب</th>
+                                        <th style="padding:10px; font-weight:bold;">رابط الـ API الفردي</th>
+                                        <th style="padding:10px; font-weight:bold; text-align:center; width: 35%;">إجراءات والترتيب</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mappedLinksMonitorTable">
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; padding:20px; opacity:0.6;">جاري تحميل الروابط...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin settings max limits -->
+                <div class="admin-only"
+                    style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 20px; backdrop-filter: blur(20px);">
+                    <h4 style="margin-top:0; color:var(--text-main); font-size:18px; display:flex; align-items:center; gap:8px;">
+                        <span>🎯</span> إعدادات نهايات الكويز العظمى للطلاب
+                    </h4>
+                    <p style="font-size: 12px; opacity:0.8; margin-bottom: 20px; color: var(--text-muted);">
+                        قم بتحديد وتثبيت درجة النهاية العظمى لكل كويز (Quiz) لتصحيح درجات الطلاب بالشكل السليم.
+                    </p>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:20px;">
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رقم الكويز المستهدف:</label>
+                            <select id="setQNum" onchange="loadSettingMax()" style="font-size:12px; padding:12px; width:100%; border-radius:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; box-sizing:border-box;">
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">درجة النهاية العظمى:</label>
+                            <input type="number" id="setQMax" placeholder="مثلاً: 15" style="font-size:12px; padding:12px; width:100%; border-radius:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); color:#fff; box-sizing:border-box;">
+                        </div>
+                    </div>
+
+                    <button class="btn-submit mutator" style="background:var(--text-main); color:var(--card-bg); font-size:13px; padding:12px;"
+                        onclick="saveMaxConfig()">تثبيت الدرجة 🔒</button>
+            </div>
+        </div>
+
+
+
+    </div>
+    <script src="grades.js?v=1.0.5"></script>
+</body>
+
+</html>
+

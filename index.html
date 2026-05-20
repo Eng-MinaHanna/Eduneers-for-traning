@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title> Attendance System | Eduneers </title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="index.css?v=1.0.1">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+</head>
+
+<body class="dark-mode">
+
+  <div class="circuit-bg"></div>
+
+  <!-- Interactive Background Orbs -->
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <!-- Floating Particles Container -->
+  <div id="particles-container"></div>
+
+
+  <div id="electricLoader">
+    <div class="loader-text" id="loaderMessage">جاري نقل البيانات...</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressBarFill"></div>
+    </div>
+    <div class="loader-percent" id="loaderPercent">0%</div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav-content">
+      <div class="nav-brand">
+        <h2>⚡ <span class="brand-text">Eduneers</span> <span id="welcomeName"></span></h2>
+      </div>
+      <div class="nav-actions">
+        <select id="globalGroupSelect" class="cross-group-only"
+          style="background: rgba(192, 132, 252, 0.1); border: 1px solid rgba(192, 132, 252, 0.4); color: #c084fc; border-radius: 8px; padding: 0 10px; height: 28px; font-size: 11px; font-weight: 800; cursor: pointer; outline: none; margin: 0 5px; display: none; box-sizing: border-box; align-self: center;"
+          onchange="changeGlobalGroup(this.value)"></select>
+        <span id="groupBadge" class="nav-badge group-badge" style="display: none;"></span>
+        <span id="roleBadge" class="nav-badge role-badge" style="display: none;"></span>
+        <button class="nav-btn" id="themeToggle" onclick="toggleDarkMode()">☀️</button>
+        <button class="nav-btn" id="menuBtn" onclick="toggleSidebar()">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <button class="close-btn" onclick="toggleSidebar()">×</button>
+    <div
+      style="padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px;">
+      <div style="font-weight: 900; color: var(--electric-blue); font-size: 1.3rem;">Eduneers System</div>
+      <div id="sideRole"
+        style="font-size: 10px; opacity: 0.7; margin-top: 5px; text-transform: uppercase; background: rgba(255,255,255,0.1); display: inline-block; padding: 4px 10px; border-radius: 8px;">
+      </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <div
+      style="margin: 10px 15px; border-radius: 12px; border: 1px solid rgba(0, 210, 255, 0.3); box-shadow: 0 0 15px rgba(0, 210, 255, 0.05); overflow: hidden;">
+      <div
+        style="background: rgba(0, 210, 255, 0.1); padding: 8px 15px; font-weight: 900; color: #00d2ff; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(0, 210, 255, 0.1);">
+        📷 قسم الحضور</div>
+      <div style="padding: 5px 0;">
+        <a href="#" onclick="gotoView('index.html', 'scanner')" id="nav-scanner"><span>📷</span> <span>مسح الـ
+            QR</span></a>
+        <a href="#" onclick="gotoView('index.html', 'manual')" id="nav-manual"><span>✍️</span> <span>التسجيل اليدوي
+            السريع</span></a>
+        <a href="#" onclick="gotoView('index.html', 'dashboard')" id="nav-dashboard"><span>📊</span> <span>لوحة
+            الحضور</span></a>
+        <a href="#" onclick="gotoView('index.html', 'analytics')" id="nav-analytics"
+          class="manager-only"><span>📈</span> <span>إحصائيات الجروبات</span></a>
+        <a href="#" onclick="gotoView('index.html', 'mail')" id="nav-mail" class="manager-only"><span>📧</span>
+          <span>الإعلانات والبريد</span></a>
+      </div>
+    </div>
+
+    <!-- Grades Section -->
+    <div class="manager-only"
+      style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(192, 132, 252, 0.3); box-shadow: 0 0 15px rgba(192, 132, 252, 0.05); overflow: hidden;">
+      <div
+        style="background: rgba(192, 132, 252, 0.1); padding: 8px 15px; font-weight: 900; color: #c084fc; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(192, 132, 252, 0.1);">
+        🎯 قسم الدرجات والتقييم</div>
+      <div style="padding: 5px 0;">
+        <a href="#" onclick="gotoView('grades.html', 'grading')" id="nav-grading"><span>📝</span> <span>رصد
+            الدرجات</span></a>
+        <a href="#" onclick="gotoView('grades.html', 'studentDashboard')" id="nav-studentDashboard"><span>📊</span> <span>لوحة درجات الطلاب</span></a>
+        <a href="#" onclick="gotoView('grades.html', 'searchView')" id="nav-searchView"><span>🔍</span> <span>استعلام عن
+            طالب</span></a>
+        <a href="#" onclick="gotoView('grades.html', 'topView')" id="nav-topView" class="manager-only"><span>🏆</span>
+          <span>لوحة الشرف Top 5</span></a>
+        <a href="#" onclick="gotoView('grades.html', 'settings')" id="nav-settings" class="manager-only"><span>⚙️</span>
+          <span>إعدادات النظام</span></a>
+      </div>
+    </div>
+
+    <!-- Admin Section -->
+    <div class="admin-only"
+      style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(245, 176, 65, 0.3); box-shadow: 0 0 15px rgba(245, 176, 65, 0.05); overflow: hidden;">
+      <div
+        style="background: rgba(245, 176, 65, 0.1); padding: 8px 15px; font-weight: 900; color: #f5b041; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(245, 176, 65, 0.1);">
+        ⚙️ الإدارة العليا</div>
+      <div style="padding: 5px 0;">
+        <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" class="admin-only"><span>👥</span>
+          <span>إدارة المستخدمين</span></a>
+      </div>
+    </div>
+
+    <a href="#" onclick="logout()"
+      style="color: #ef4444; margin: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; text-align: center; justify-content: center;"><span>🚪</span>
+      <span>تسجيل الخروج</span></a>
+    <div style="height: 100px; flex-shrink: 0;"></div>
+  </div>
+
+  <div class="tabs-container" id="appTabs" style="display:none;">
+    <div class="tab-item active" id="tab-scanner" onclick="switchView('scanner', this)"><span>📷</span><span>
+        كاميرا</span></div>
+    <div class="tab-item" id="tab-manual" onclick="switchView('manual', this)"><span>✍️</span><span> يدوي</span></div>
+    <div class="tab-item" id="tab-dashboard" onclick="switchView('dashboard', this)"><span>📊</span><span> متابعة</span>
+    </div>
+    <div class="tab-item admin-only" id="tab-users" onclick="switchView('users', this)"><span>👥</span><span>
+        إدارة</span></div>
+    <div class="tab-item manager-only" id="tab-mail" onclick="switchView('mail', this)"><span>📧</span><span>
+        إعلان</span></div>
+  </div>
+
+  <div class="container">
+    <div id="toast"></div>
+    <div id="offlineBadge" onclick="syncOfflineData()">📶 لديك بيانات غير مزامنة (<span id="offlineCount">0</span>).
+      اضغط للرفع!</div>
+
+    <div id="lectureContainer" class="manager-only"
+      style="background: var(--card-bg); padding: 15px; border-radius: 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); text-align:center; box-shadow: 0 10px 20px rgba(0,0,0,0.05); display:none;">
+      <div style="margin-bottom: 15px;">
+        <label
+          style="font-weight: 800; color: var(--electric-blue); font-size: 13px; display:block; margin-bottom:10px;">رقم
+          المحاضرة المستهدفة</label>
+        <select id="lecture" style="margin-bottom: 0; max-width: 300px;">
+        </select>
+      </div>
+      <div class="manager-only" style="padding-top: 10px;">
+      </div>
+
+    </div>
+
+    <div id="view-scanner" class="view-section active">
+      <div style="max-width: 500px; margin: auto;">
+        <h3 style="color:var(--electric-blue); text-align:center; font-size:24px; font-weight:800; margin-bottom:20px;">
+          المسح الضوئي للحضور</h3>
+        <select id="cameraSelection">
+          <option value="">جاري البحث عن كاميرات...</option>
+        </select>
+        <button class="btn-primary" onclick="startLiveCamera()"
+          style="width: 100%; display: flex; justify-content: center;">🎥 تفعيل المسح الذكي</button>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 15px 0; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+          <input type="checkbox" id="continuousScan" style="width: 18px; height: 18px; cursor: pointer; margin: 0; accent-color: var(--electric-blue);">
+          <label for="continuousScan" style="font-weight: 700; font-size: 13px; color: var(--text-main); cursor: pointer; user-select: none;">🔄 وضع المسح المستمر (بدون إيقاف الكاميرا)</label>
+        </div>
+        <input type="file" id="qr-input-file" accept="image/*" capture="environment" style="display:none;">
+        <button class="btn-secondary" onclick="document.getElementById('qr-input-file').click()"
+          style="margin-bottom:0;">📸 التقاط صورة للـ QR</button>
+        <div id="reader"
+          style="width: 100%; border-radius: 20px; overflow: hidden; display: none; border: 3px dashed var(--accent); margin-top: 15px; background: rgba(0,0,0,0.05); padding: 10px;">
+        </div>
+        <button class="btn-danger" id="stopCamBtn"
+          style="display:none; margin-top:15px; width: 100%; justify-content: center;" onclick="stopLiveCamera()">إيقاف
+          الكاميرا</button>
+      </div>
+    </div>
+
+    <div id="view-manual" class="view-section">
+      <div style="max-width: 500px; margin: auto;">
+        <h3 style="color:var(--electric-blue); text-align:center; font-size:24px; font-weight:800; margin-bottom:20px;">
+          التسجيل اليدوي السريع</h3>
+        <p style="font-size: 14px; color: var(--text-muted); text-align:center; margin-bottom: 20px;">أدخل <b>رقم الطالب
+            فقط</b> (يدعم الأرقام العربية ١٢٣).</p>
+        <input type="text" id="manualCode" placeholder="مثال: 15 أو ١٥"
+          style="text-align:center; font-size:24px; letter-spacing:4px; font-weight:900;">
+        <button class="btn-primary mutator" onclick="submitManualCode()">تسجيل الحضور 📥</button>
+      </div>
+    </div>
+
+    <div id="view-dashboard" class="view-section">
+      <div class="dashboard-header">
+        <span style="font-weight: 800; color: var(--primary); font-size:16px;">مؤشر الحضور الحي:</span>
+        <span class="count-badge" id="dashCount">0</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px;">
+        <div class="search-box" style="position: relative; margin: 0;">
+          <input type="text" id="searchInput" placeholder="بحث ذكي بالاسم أو الكود..." onkeyup="filterDashboard()"
+            style="margin: 0; padding: 14px; padding-right: 45px; text-align: right; border-radius: 14px; box-sizing: border-box; width: 100%;">
+          <span style="position: absolute; right: 15px; top: 16px; opacity: 0.5;">🔍</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-secondary" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; gap: 8px;"
+            onclick="loadDashboard()"><span>🔄</span><span>تحديث</span></button>
+          <button class="btn-excel" style="flex: 1; margin: 0; padding: 12px; font-size: 14px; gap: 8px;"
+            onclick="exportToExcel()"><span>📥</span><span>تحميل Excel</span></button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table id="attendeesTable">
+          <thead>
+            <tr>
+              <th onclick="sortDashboard('id')" style="cursor:pointer; transition:0.3s;" title="رتب بالكود">الكود <span
+                  id="sort-id" style="font-size:14px; margin-right:4px;">⇕</span></th>
+              <th onclick="sortDashboard('name')" style="cursor:pointer; transition:0.3s;" title="رتب أبجدياً">الاسم
+                <span id="sort-name" style="font-size:14px; margin-right:4px;">⇕</span>
+              </th>
+              <th onclick="sortDashboard('time')" style="cursor:pointer; transition:0.3s;" title="رتب بوقت التوثيق">
+                الوقت <span id="sort-time" style="font-size:14px; margin-right:4px;">⇕</span></th>
+              <th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody id="attendeesList">
+            <tr>
+              <td colspan="4" style="text-align:center; padding: 20px; font-weight:700; color:var(--text-muted);">اضغط
+                تحديث لعرض السجلات</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-analytics" class="view-section manager-only">
+      <div style="max-width: 600px; margin: auto;">
+        <h3 style="color:var(--electric-blue); text-align:center; font-size:24px; font-weight:800; margin-bottom:20px;">
+          📊 الإحصائيات والتحليلات</h3>
+        <div class="owner-only flex-container"
+          style="gap: 15px; margin-bottom: 25px; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 600px; margin-left: auto; margin-right: auto;">
+          <button class="btn-primary btn-small" style="flex:1; margin:0; padding:12px; font-size:14px;"
+            onclick="loadAnalytics('all')">مقارنة شاملة 🌐</button>
+          <button class="btn-secondary btn-small" style="flex:1; margin:0; padding:12px; font-size:14px;"
+            onclick="loadAnalytics('group')">تحليل الجروب 📈</button>
+        </div>
+        <p id="analyticsDesc" style="font-size: 13px; color: var(--text-muted); text-align:center;"></p>
+        <div class="chart-container"><canvas id="attendanceChart"></canvas></div>
+        <button class="btn-secondary" style="margin-top: 15px;" onclick="loadAnalytics()">🔄 تحديث البيانات</button>
+      </div>
+    </div>
+
+    <div id="view-users" class="view-section admin-only">
+      <div style="max-width: 600px; margin: auto;">
+        <h3 style="color:var(--electric-blue); text-align:center; font-size:24px; font-weight:800; margin-bottom:20px;">
+          👥 إدارة المستخدمين</h3>
+        <div class="admin-form-container">
+          <input type="text" id="newUserName" placeholder="الاسم بالكامل">
+          <input type="email" id="newUserEmail" placeholder="البريد الإلكتروني الرسمي">
+          <input type="password" id="newUserPass" placeholder="كلمة مرور الدخول">
+          <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <select id="newUserRole" style="margin-bottom: 0;">
+              <option value="Cadre">مسجل (Cadre)</option>
+              <option value="Cadre Leader">قائد فني (Cadre Leader)</option>
+              <option value="Quality Control">مراقبة الجودة (Quality Control)</option>
+              <option value="Coordinator">مراقب (Coordinator)</option>
+              <option value="Team Manager">مدير (Team Manager)</option>
+              <option value="CO-Founder">شريك مؤسس ✨</option>
+            </select>
+            <select id="newUserGroup" style="margin-bottom: 0;"></select>
+          </div>
+          <button class="btn-primary mutator" onclick="addUser()">توثيق المستخدم ➕</button>
+        </div>
+        <div class="form-wrapper" style="display:flex; gap:10px; margin-bottom:15px;">
+          <button class="btn-secondary" style="margin:0; padding:12px; flex:1; gap: 6px;"
+            onclick="loadUsers()"><span>🔄</span><span>سحب/تحديث</span></button>
+          <div class="search-box" style="position:relative; flex:2;">
+            <input type="text" id="searchUsersInput" placeholder="بحث بالاسم أو الايميل..."
+              onkeyup="filterSystemUsers()"
+              style="margin:0; padding:12px; padding-right:35px; width:100%; box-sizing:border-box; text-align: right;">
+            <span style="position:absolute; right:12px; top:13px; opacity:0.5;">🔍</span>
+          </div>
+        </div>
+        <div class="table-container" style="margin-top:20px;">
+          <table>
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>الرتبة</th>
+                <th>الجروب</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="usersList">
+              <tr>
+                <td colspan="4" style="text-align:center; padding: 20px; color:var(--text-muted);">جاري الاتصال...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-mail" class="view-section manager-only">
+
+      <div style="max-width: 640px; margin: auto;">
+
+        <!-- Hero Header -->
+        <div class="mail-hero">
+          <span class="mail-hero-icon">📨</span>
+          <h2>مساحة الإعلانات الرسمية</h2>
+          <p>أرسل رسائل احترافية مخصصة لمتدربيك، مع لوجو الشركة<br>وتوقيعك الرسمي بأسفل كل رسالة تلقائياً.</p>
+          <div class="mail-stats">
+            <span class="mail-stat-chip">📎 يدعم PDF والصور</span>
+            <span class="mail-stat-chip">👥 إرسال جماعي أو فردي</span>
+            <span class="mail-stat-chip">✍️ توقيع ديناميكي</span>
+          </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="mail-form-card">
+
+          <!-- Recipients -->
+          <div class="mail-field-label">👤 المستقبلون</div>
+          <div class="custom-multi-select" style="margin-bottom: 22px;">
+            <div class="select-box" onclick="toggleMailOptionList()">
+              <span id="mailSelectBoxText">اختر المتدربين المرسل إليهم</span>
+              <span style="font-size:18px; opacity:0.5; transition:0.3s;">⌄</span>
+            </div>
+            <div class="options-container" id="mailOptionList">
+              <div style="text-align:center; padding: 20px; color: var(--text-muted);">يرجى الانتظار...</div>
+            </div>
+          </div>
+
+          <div class="mail-section-divider"></div>
+
+          <!-- Subject -->
+          <div class="mail-field-label" style="margin-top: 4px;">✉️ عنوان الرسالة</div>
+          <input class="mail-subject-input" id="mailSubject" type="text" placeholder="اكتب عنواناً واضحاً ومميزاً..."
+            style="margin-bottom: 22px;">
+
+          <!-- Body -->
+          <div class="mail-field-label">📝 محتوى الرسالة</div>
+          <textarea class="mail-body-textarea" id="mailBody" placeholder="اكتب نص الرسالة هنا...
+يمكنك كتابة أكثر من سطر بحرية، وسيتم تنسيقها تلقائياً في قالب الإيميل."></textarea>
+
+          <div class="mail-section-divider"></div>
+
+          <!-- Attachment -->
+          <div class="mail-field-label">📎 مرفق (اختياري)</div>
+          <div class="mail-attach-zone" id="mailAttachZone">
+            <input type="file" id="mailAttachment" accept="image/*,.pdf" onchange="updateAttachLabel(this)">
+            <div id="attachLabelContent">
+              <div style="font-size: 32px; margin-bottom: 8px; opacity: 0.5;">☁️</div>
+              <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px;">اسحب الملف هنا أو اضغط
+                للاختيار</div>
+              <div style="font-size: 12px; color: var(--text-muted);">PDF أو صور — الحد الأقصى 5MB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Send Button -->
+        <button class="mail-send-btn" onclick="sendBroadcastMail()">
+          <span>🚀</span>
+          <span>إطلاق الإعلان الآن</span>
+        </button>
+        <p style="text-align:center; font-size:12px; color: var(--text-muted); margin-top: 12px;">يتم إرسال الرسائل عبر
+          خوادم Google الآمنة مع توقيعك الرسمي ولوجو Eduneers</p>
+      </div>
+    </div>
+
+    <div id="view-login" class="view-section">
+      <div class="form-wrapper">
+        <div style="text-align: center; margin-bottom: 30px;">
+
+          <img src="https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(2).png"
+            alt="Eduneers Logo" class="logo-light">
+
+          <img src="https://aawyndbhkgiombfqinyf.supabase.co/storage/v1/object/public/new/BIM%20sesion%20(4).png"
+            alt="Eduneers Logo" class="logo-dark">
+
+          <h2 style="color:var(--primary); margin-top:0; font-size: 28px; font-weight: 800; letter-spacing: 1px;">تسجيل
+            الدخول</h2>
+          <p style="color: var(--text-muted); font-size: 15px; font-weight: 600;"> Attendance System | Eduneers </p>
+        </div>
+
+        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني...">
+        <input type="password" id="loginPassword" placeholder="كلمة المرور...">
+        <button class="btn-primary" onclick="handleManualLogin()">دخول آمن 🔐</button>
+
+        <div class="divider">
+          <hr><span>أو باستخدام</span>
+        </div>
+
+        <div class="google-btn-container" id="googleBtnWrapper"></div>
+      </div>
+    </div>
+
+  </div>
+  <script src="index.js?v=1.0.1"></script>
+  
+</body>
+
+</html>
+
+
