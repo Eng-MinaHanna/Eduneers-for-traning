@@ -1036,11 +1036,49 @@ body.dark-mode .custom-modal-btn-cancel:hover {
   transform: translateY(0);
 }
 
+/* 📊 Excel Spreadsheet Table Styling & Page Scroll Sticky Header */
+.excel-table-wrapper {
+    overflow-x: auto;
+    overflow-y: clip; /* Modern CSS standard to allow horizontal scroll but prevent vertical scroll containment, allowing sticky header to escape to page viewport */
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: right;
+    font-size: 12px;
+    min-width: 1000px;
+}
+
+.excel-table-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+.excel-table-header th {
+    position: sticky;
+    top: 60px; /* Aligns perfectly right below the page's sticky navbar (height ~60px) */
+    z-index: 10;
+    background: #f1f5f9; /* Solid background for light mode to prevent clashing content showing underneath */
+    transition: background 0.3s ease;
+}
+
+body.dark-mode .excel-table-header th {
+    background: #0f172a; /* Solid background matching dark mode background */
+}
+
 /* 🖥️ Overrides to expand Student Dashboard to full screen width on Laptops/Desktops */
 @media (min-width: 1024px) {
     #view-studentDashboard > div {
         max-width: 95% !important;
         width: 95% !important;
+    }
+    
+    /* On desktops where the screen is wide enough, disable overflow containment completely to guarantee flawless sticking */
+    .excel-table-wrapper {
+        overflow: visible !important;
     }
 }
 
