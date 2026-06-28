@@ -1485,8 +1485,6 @@ window.saveDashboardStudentGrade = async function() {
     const attActive = document.getElementById('dbModalAttBtn').classList.contains('active-att');
     if (attActive) {
         promises.push(fetch(`${centralApi}?action=scan&qrCode=${code}&lectureNum=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})));
-    } else {
-        promises.push(fetch(`${centralApi}?action=deleteAttendance&qrCode=${code}&lectureNum=${lec}${auth}`).then(r => r.json()).catch(e => ({})));
     }
     
     let taskValRaw = document.getElementById('dbModalValTask').value.trim();
@@ -1524,10 +1522,12 @@ window.saveDashboardStudentGrade = async function() {
     // === SYNC to Individual Student Sheet ===
     let personalApi = getPersonalApi(code);
     if (personalApi) {
-        promises.push(
-            fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=${attActive ? 15 : 0}`)
-                    .then(r => r.json()).catch(e => ({}))
-            );
+        if (attActive) {
+            promises.push(
+                fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=15`)
+                        .then(r => r.json()).catch(e => ({}))
+                );
+        }
         if (taskVal !== "") {
             promises.push(
                 fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('Main task. 70')}&val=${taskVal}`)
