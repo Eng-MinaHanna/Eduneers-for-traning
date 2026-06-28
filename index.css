@@ -1316,108 +1316,7 @@
       }
     }
 
-    /* --- MAGNETIC CURSOR GLOW --- */
-    .cursor-dot {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 10px;
-      height: 10px;
-      margin-top: -5px;
-      margin-left: -5px;
-      background: var(--primary);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10000;
-      transform: translate3d(-100px, -100px, 0);
-      will-change: transform;
-      transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease, background 0.3s ease;
-    }
-
-    body.dark-mode .cursor-dot {
-      background: var(--electric-blue);
-      box-shadow: 0 0 10px var(--electric-blue);
-    }
-
-    body.hovering .cursor-dot {
-      width: 14px;
-      height: 14px;
-      margin-top: -7px;
-      margin-left: -7px;
-      background: var(--accent);
-      box-shadow: 0 0 15px var(--accent);
-    }
-
-    .cursor-glow {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 44px;
-      height: 44px;
-      margin-top: -22px;
-      margin-left: -22px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate3d(-100px, -100px, 0);
-      transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease;
-      will-change: transform, width, height;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .cursor-glow::before {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 2px dashed rgba(15, 23, 42, 0.8);
-      animation: spinSparks 4s linear infinite;
-      transition: border-color 0.3s ease, box-shadow 0.3s ease, animation-duration 0.3s ease;
-    }
-
-    body.dark-mode .cursor-glow::before {
-      border-color: rgba(0, 210, 255, 0.8);
-      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4), inset 0 0 15px rgba(0, 210, 255, 0.2);
-    }
-
-    body.hovering .cursor-glow {
-      width: 64px;
-      height: 64px;
-      margin-top: -32px;
-      margin-left: -32px;
-    }
-
-    body.hovering .cursor-glow::before {
-      border-color: rgba(245, 176, 65, 0.9);
-      box-shadow: 0 0 20px rgba(245, 176, 65, 0.6), inset 0 0 20px rgba(245, 176, 65, 0.4);
-      animation-duration: 2s;
-    }
-
-    @keyframes spinSparks {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Hide default cursor only if not on touch device */
-    @media (pointer: fine) {
-      body {
-        cursor: none;
-      }
-
-      a,
-      button,
-      input,
-      select,
-      .glass-panel,
-      .dashboard-card {
-        cursor: none;
-      }
-    }
-
-/* ===== Mail Styles ===== */
+    /* ===== Mail Styles ===== */
 /* ===== Mail View Premium Styles ===== */
         .mail-hero {
           background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
@@ -1956,5 +1855,27 @@ body.dark-mode .custom-modal-btn-cancel:hover {
 
 .custom-modal-btn-cancel:active {
   transform: translateY(0);
+}
+
+/* ⚡ Performance Mode - Disable all animations & transitions */
+body.performance-mode *,
+body.performance-mode *::before,
+body.performance-mode *::after {
+  animation: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+body.performance-mode .bg-orb,
+body.performance-mode .particle,
+body.performance-mode .circuit-bg {
+  display: none !important;
+}
+
+body.performance-mode .view-section.active {
+  animation: none !important;
 }
 

@@ -127,6 +127,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             try {
                 if (localStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'index.html'; return; }
                 if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+                if (localStorage.getItem('performanceMode') === 'true') { document.body.classList.add('performance-mode'); document.getElementById('perfToggle').innerText = '💤'; }
 
                 const rawRole = localStorage.getItem('userRole') || "CADRE";
                 const role = rawRole.toUpperCase();
@@ -345,7 +346,12 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             groupKeys.forEach(code => {
                 const url = linksMap[code];
                 html += `
-                    <tr class="link-row" data-code="${code}" style="border-bottom:1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+                    <tr class="link-row" draggable="true" data-code="${code}"
+                        ondragstart="onLinkRowDragStart(event, '${code}')"
+                        ondragover="onLinkRowDragOver(event)"
+                        ondrop="onLinkRowDrop(event, '${code}')"
+                        ondragend="onLinkRowDragEnd(event)"
+                        style="border-bottom:1px solid rgba(255,255,255,0.05); transition: background 0.2s; cursor:grab;">
                         <td style="padding:12px 10px; font-weight:bold; color:var(--electric-blue); font-family:monospace; font-size:13px;">${code}</td>
                         <td style="padding:12px 10px; opacity:0.75; font-family:monospace; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;" title="${url}">${url}</td>
                         <td style="padding:12px 10px; text-align:center;">
@@ -363,6 +369,70 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             });
 
             tableBody.innerHTML = html || `<tr><td colspan="3" style="text-align:center; padding:30px; opacity:0.5; color:var(--text-muted);">لا يوجد روابط مسجلة حالياً لـ ${currentGroup}...</td></tr>`;
+        }
+
+        // Drag-and-Drop handlers for link rows
+        let _draggedLinkCode = null;
+
+        window.onLinkRowDragStart = function(e, code) {
+            _draggedLinkCode = code;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', code);
+            e.target.style.opacity = '0.4';
+        };
+
+        window.onLinkRowDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            document.querySelectorAll('tr.link-row').forEach(r => r.classList.remove('drag-over'));
+            const row = e.target.closest('tr.link-row');
+            if (row) row.classList.add('drag-over');
+        };
+
+        window.onLinkRowDrop = function(e, targetCode) {
+            e.preventDefault();
+            if (!_draggedLinkCode || _draggedLinkCode === targetCode) return;
+
+            const currentGroup = localStorage.getItem('userGroup') || "Group A";
+            let customOrder = JSON.parse(localStorage.getItem('PERSONAL_LINKS_ORDER_' + currentGroup) || '[]');
+            let linksMap = JSON.parse(localStorage.getItem('PERSONAL_LINKS_MAP') || '{}');
+            const groupLetter = currentGroup.replace("Group ", "").trim();
+            let groupKeys = Object.keys(linksMap).filter(c => c.startsWith(groupLetter));
+
+            if (customOrder.length > 0) {
+                let filteredOrder = customOrder.filter(k => groupKeys.includes(k));
+                groupKeys.forEach(k => { if (!filteredOrder.includes(k)) filteredOrder.push(k); });
+                groupKeys = filteredOrder;
+            }
+
+            const fromIdx = groupKeys.indexOf(_draggedLinkCode);
+            const toIdx = groupKeys.indexOf(targetCode);
+            if (fromIdx === -1 || toIdx === -1) return;
+
+            groupKeys.splice(fromIdx, 1);
+            groupKeys.splice(toIdx, 0, _draggedLinkCode);
+
+            localStorage.setItem('PERSONAL_LINKS_ORDER_' + currentGroup, JSON.stringify(groupKeys));
+            saveLinksOrderToServer(groupKeys);
+            refreshLinksMonitor();
+        };
+
+        window.onLinkRowDragEnd = function(e) {
+            _draggedLinkCode = null;
+            e.target.style.opacity = '1';
+            document.querySelectorAll('tr.link-row').forEach(r => r.classList.remove('drag-over'));
+        };
+
+        function saveLinksOrderToServer(orderArray) {
+            const orderStr = orderArray.join(',');
+            fetch(`${CENTRAL_LINKS_API}?action=reorderIndividuals&order=${encodeURIComponent(orderStr)}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        console.log('Order saved to server:', res.message);
+                    }
+                })
+                .catch(e => console.error('Failed to save order to server', e));
         }
 
         window.moveLinkUp = function(code) {
@@ -387,6 +457,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                 groupKeys[index - 1] = temp;
                 
                 localStorage.setItem('PERSONAL_LINKS_ORDER_' + currentGroup, JSON.stringify(groupKeys));
+                saveLinksOrderToServer(groupKeys);
                 refreshLinksMonitor();
                 
                 if (window.dashboardStudents && window.dashboardStudents.length > 0) {
@@ -426,6 +497,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                 groupKeys[index + 1] = temp;
                 
                 localStorage.setItem('PERSONAL_LINKS_ORDER_' + currentGroup, JSON.stringify(groupKeys));
+                saveLinksOrderToServer(groupKeys);
                 refreshLinksMonitor();
                 
                 if (window.dashboardStudents && window.dashboardStudents.length > 0) {
@@ -537,6 +609,12 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             document.body.classList.toggle('dark-mode');
             localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
             if (myChart) extractTop5();
+        }
+
+        function togglePerformanceMode() {
+            const isPerf = document.body.classList.toggle('performance-mode');
+            localStorage.setItem('performanceMode', isPerf);
+            document.getElementById('perfToggle').innerText = isPerf ? '💤' : '⚡';
         }
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
@@ -797,6 +875,8 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             // 1. Save Attendance (scan) - Central
             if (document.getElementById('attBtn').classList.contains('active-att')) {
                 promises.push(fetch(`${centralApi}?action=scan&qrCode=${code}&lectureNum=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})));
+            } else {
+                promises.push(fetch(`${centralApi}?action=deleteAttendance&qrCode=${code}&lectureNum=${lec}${auth}`).then(r => r.json()).catch(e => ({})));
             }
 
             // 2. Save Main Task Grade - Central
@@ -832,9 +912,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             let a = document.getElementById('attitBtn').classList.contains('active-attit') ? 5 : 0;
             let b = convertNumerals(document.getElementById('valBonus').value) || 0;
 
-            if (f || a || b != 0) {
-                promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
-            }
+            promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
 
             // === SYNC to Individual Student Sheet ===
             let personalApi = getPersonalApi(code);
@@ -842,12 +920,11 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                 console.log("Syncing to personal sheet:", personalApi);
 
                 // Attendance
-                if (document.getElementById('attBtn').classList.contains('active-att')) {
-                    promises.push(
-                        fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=15`)
-                            .then(r => r.json()).then(res => console.log("Sync Attendance:", res)).catch(e => console.error("Sync Error:", e))
-                    );
-                }
+                const attActiveSubmit = document.getElementById('attBtn').classList.contains('active-att');
+                promises.push(
+                    fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=${attActiveSubmit ? 15 : 0}`)
+                        .then(r => r.json()).then(res => console.log("Sync Attendance:", res)).catch(e => console.error("Sync Error:", e))
+                );
 
                 // Main Task
                 if (taskVal !== "") {
@@ -867,23 +944,19 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
 
                 // Extra (attitude + feedback)
                 let combinedAtt = 0;
-                if (f) combinedAtt += 5;  // feedback = 5
-                if (a) combinedAtt += 5;  // attitude = 5
+                if (f) combinedAtt += 5;
+                if (a) combinedAtt += 5;
 
-                if (combinedAtt > 0) {
-                    promises.push(
-                        fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`)
-                            .then(r => r.json()).then(res => console.log("Sync Attitude:", res)).catch(e => console.error("Sync Error:", e))
-                    );
-                }
+                promises.push(
+                    fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`)
+                        .then(r => r.json()).then(res => console.log("Sync Attitude:", res)).catch(e => console.error("Sync Error:", e))
+                );
 
                 // Bonus
-                if (b) {
-                    promises.push(
-                        fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`)
-                            .then(r => r.json()).then(res => console.log("Sync Bonus:", res)).catch(e => console.error("Sync Error:", e))
-                    );
-                }
+                promises.push(
+                    fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`)
+                        .then(r => r.json()).then(res => console.log("Sync Bonus:", res)).catch(e => console.error("Sync Error:", e))
+                );
             } else {
                 console.log("No personal API found for:", code);
             }
@@ -1125,44 +1198,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-// ==================== SECTION ====================
-// --- MAGNETIC CURSOR LOGIC ---
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.matchMedia("(pointer: fine)").matches) {
-                const cursorGlow = document.createElement('div');
-                cursorGlow.classList.add('cursor-glow');
-                document.body.appendChild(cursorGlow);
-
-                let mouseX = -100, mouseY = -100;
-                let cursorX = -100, cursorY = -100;
-
-                document.addEventListener('mousemove', (e) => {
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-
-                function animateCursor() {
-                    cursorX += (mouseX - cursorX) * 0.15;
-                    cursorY += (mouseY - cursorY) * 0.15;
-                    cursorGlow.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
-                    requestAnimationFrame(animateCursor);
-                }
-                animateCursor();
-
-                const addHoverListeners = () => {
-                    document.querySelectorAll('button, a, input, select, .glass-panel, .dashboard-card').forEach(el => {
-                        if (!el.dataset.hasCursorHover) {
-                            el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
-                            el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
-                            el.dataset.hasCursorHover = "true";
-                        }
-                    });
-                };
-                addHoverListeners();
-                setInterval(addHoverListeners, 2000);
-            }
-        });
-
 // ==================== SECTION: COMPATIBLE STUDENT GRADE DASHBOARD ====================
 
 // Global state variables
@@ -1170,18 +1205,13 @@ window.dashboardStudents = [];
 window.currentEditingStudent = null;
 window.dbSortAsc = true;
 
-// 🎓 Populate lecture dropdowns inside studentDashboard on load
+// 🎓 Populate lecture range inputs inside studentDashboard on load
 function initDbLecOptions() {
-    const select = document.getElementById('dbLecSelect');
-    if (select && select.children.length === 0) {
-        let html = "";
-        for (let i = 1; i <= 20; i++) {
-            html += `<option value="${i}">المحاضرة ${i}</option>`;
-        }
-        select.innerHTML = html;
-        const activeLec = document.getElementById('currentLecNum') ? document.getElementById('currentLecNum').value : "1";
-        select.value = activeLec || "1";
-    }
+    const from = document.getElementById('dbLecFrom');
+    const to = document.getElementById('dbLecTo');
+    const activeLec = document.getElementById('currentLecNum') ? document.getElementById('currentLecNum').value : "1";
+    if (from && !from.value) from.value = activeLec || "1";
+    if (to && !to.value) to.value = activeLec || "1";
 }
 
 if (document.readyState === 'loading') {
@@ -1414,7 +1444,7 @@ window.openDashboardGradeModal = async function(id) {
     const { name, code } = student;
     window.currentEditingStudent = { id, name, code };
     
-    const lec = document.getElementById('dbLecSelect').value;
+    const lec = document.getElementById('dbLecFrom').value;
     document.getElementById('dbModalStudentName').innerText = `${name} (${code})`;
     document.getElementById('dbModalLecNum').innerText = `محاضرة ${lec}`;
     
@@ -1515,7 +1545,7 @@ window.saveDashboardStudentGrade = async function() {
     
     const student = window.currentEditingStudent;
     const code = student.id;
-    const lec = document.getElementById('dbLecSelect').value;
+    const lec = document.getElementById('dbLecFrom').value;
     const auth = getAuthParams();
     const centralApi = getEffectiveApi(GRADES_API);
     let promises = [];
@@ -1558,9 +1588,7 @@ window.saveDashboardStudentGrade = async function() {
     let a = document.getElementById('dbModalAttitBtn').classList.contains('active-attit') ? 5 : 0;
     let b = convertNumerals(document.getElementById('dbModalValBonus').value) || 0;
     
-    if (f || a || b != 0) {
-        promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
-    }
+    promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
     
     // === SYNC to Individual Student Sheet ===
     let personalApi = getPersonalApi(code);
@@ -1568,8 +1596,8 @@ window.saveDashboardStudentGrade = async function() {
         if (attActive) {
             promises.push(
                 fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=15`)
-                    .then(r => r.json()).catch(e => ({}))
-            );
+                        .then(r => r.json()).catch(e => ({}))
+                );
         }
         if (taskVal !== "") {
             promises.push(
@@ -1586,18 +1614,14 @@ window.saveDashboardStudentGrade = async function() {
         let combinedAtt = 0;
         if (f) combinedAtt += 5;
         if (a) combinedAtt += 5;
-        if (combinedAtt > 0) {
-            promises.push(
-                fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`)
-                    .then(r => r.json()).catch(e => ({}))
-            );
-        }
-        if (b) {
-            promises.push(
-                fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`)
-                    .then(r => r.json()).catch(e => ({}))
-            );
-        }
+        promises.push(
+            fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`)
+                .then(r => r.json()).catch(e => ({}))
+        );
+        promises.push(
+            fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`)
+                .then(r => r.json()).catch(e => ({}))
+        );
     }
     
     if (promises.length === 0) {
@@ -1627,10 +1651,10 @@ window.closeDashboardGradeModal = function() {
 };
 
 window.onDashboardLectureChange = function() {
-    const lecSelect = document.getElementById('dbLecSelect');
+    const from = document.getElementById('dbLecFrom');
     const targetLecSelect = document.getElementById('currentLecNum');
-    if (lecSelect && targetLecSelect) {
-        targetLecSelect.value = lecSelect.value;
+    if (from && targetLecSelect) {
+        targetLecSelect.value = from.value;
     }
     if (window.dbActiveTab === 'excel') {
         loadExcelDashboardSheet(true);
@@ -1686,7 +1710,7 @@ window.loadExcelDashboardSheet = async function(useCache = true) {
     const container = document.getElementById('excelRowsContainer');
     if (!container) return;
 
-    const lec = document.getElementById('dbLecSelect').value || "1";
+    const lec = document.getElementById('dbLecFrom').value || "1";
     
     const badge = document.getElementById('excelLecBadge');
     if (badge) badge.innerText = `المحاضرة النشطة: ${lec}`;
@@ -1750,10 +1774,53 @@ window.loadExcelDashboardSheet = async function(useCache = true) {
 
         window.excelGradesMap = gradesMap;
         renderExcelGrid();
+        calculateSubmitPct();
     } catch (e) {
         console.error("Load Excel Dashboard Grades Error:", e);
         showToast("❌ خطأ في تحميل درجات شيت الإكسيل", "error");
         container.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px; color: #ef4444; font-size: 14px;">❌ فشل الاتصال بالسيرفر. يرجى التحقق من الشبكة وإعادة المحاولة.</td></tr>`;
+    }
+};
+
+window.calculateSubmitPct = async function() {
+    const pctEl = document.getElementById('excelSubmitPct');
+    if (!pctEl) return;
+
+    const fromLec = document.getElementById('dbLecFrom').value || "1";
+    const toLec = document.getElementById('dbLecTo').value || "1";
+
+    try {
+        const auth = getAuthParams();
+        const api = getEffectiveApi(GRADES_API);
+
+        const [rAttend, rTasks, rQuizzes, rExtra] = await Promise.all([
+            fetch(`${api}?action=getTop&fromLec=${fromLec}&toLec=${toLec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})),
+            fetch(`${api}?action=getTop&fromTask=${fromLec}&toTask=${toLec}${auth}`).then(r => r.json()).catch(e => ({})),
+            fetch(`${api}?action=getTop&fromQuiz=${fromLec}&toQuiz=${toLec}${auth}`).then(r => r.json()).catch(e => ({})),
+            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${fromLec}&toLec=${toLec}${auth}`).then(r => r.json()).catch(e => ({}))
+        ]);
+
+        const total = window.dashboardStudents ? window.dashboardStudents.length : 0;
+        if (total === 0) {
+            pctEl.innerHTML = '👥 0 متدرب';
+            return;
+        }
+
+        const submitted = new Set();
+        if (rAttend && rAttend.scores) rAttend.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
+        if (rTasks && rTasks.scores) rTasks.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
+        if (rQuizzes && rQuizzes.scores) rQuizzes.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
+        if (rExtra && rExtra.scores) rExtra.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
+
+        const count = submitted.size;
+        const pct = Math.round((count / total) * 100);
+        const color = pct >= 80 ? '#10b981' : pct >= 50 ? 'var(--accent)' : '#ef4444';
+        const rangeText = fromLec === toLec ? `المحاضرة ${fromLec}` : `المحاضرات ${fromLec}-${toLec}`;
+
+        pctEl.innerHTML = `📊 تسليم ${rangeText}: <span style="font-weight:900;font-size:16px;color:${color};">${pct}%</span> (${count}/${total})`;
+    } catch (e) {
+        console.error("Submit % error:", e);
+        pctEl.innerHTML = '❌ خطأ';
     }
 };
 
@@ -1901,7 +1968,7 @@ window.saveExcelRow = async function(id) {
     if (!btn || btn.disabled) return;
 
     const code = id;
-    const lec = document.getElementById('dbLecSelect').value || "1";
+    const lec = document.getElementById('dbLecFrom').value || "1";
     const auth = getAuthParams();
     const centralApi = getEffectiveApi(GRADES_API);
     let promises = [];
@@ -1946,6 +2013,8 @@ window.saveExcelRow = async function(id) {
     // 1. Save Attendance Scan
     if (attActive) {
         promises.push(fetch(`${centralApi}?action=scan&qrCode=${code}&lectureNum=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})));
+    } else {
+        promises.push(fetch(`${centralApi}?action=deleteAttendance&qrCode=${code}&lectureNum=${lec}${auth}`).then(r => r.json()).catch(e => ({})));
     }
     
     // 2. Save Task
@@ -1961,16 +2030,12 @@ window.saveExcelRow = async function(id) {
     }
 
     // 4. Save Extras (Feedback, Attitude, Bonus)
-    if (f || a || b != 0) {
-        promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
-    }
+    promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
 
     // === SYNC to Personal Sheet ===
     let personalApi = getPersonalApi(code);
     if (personalApi) {
-        if (attActive) {
-            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=15`).then(r => r.json()).catch(e => ({})));
-        }
+        promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=${attActive ? 15 : 0}`).then(r => r.json()).catch(e => ({})));
         if (taskVal !== "") {
             promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('Main task. 70')}&val=${taskVal}`).then(r => r.json()).catch(e => ({})));
         }
@@ -1980,12 +2045,8 @@ window.saveExcelRow = async function(id) {
         let combinedAtt = 0;
         if (f) combinedAtt += 5;
         if (a) combinedAtt += 5;
-        if (combinedAtt > 0) {
-            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`).then(r => r.json()).catch(e => ({})));
-        }
-        if (b) {
-            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`).then(r => r.json()).catch(e => ({})));
-        }
+        promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`).then(r => r.json()).catch(e => ({})));
+        promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`).then(r => r.json()).catch(e => ({})));
     }
 
     if (promises.length === 0) {

@@ -805,52 +805,27 @@
             }
         }
 
-        /* --- MAGNETIC CURSOR GLOW --- */
-        .cursor-glow {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 40px;
-            height: 40px;
-            margin-top: -20px;
-            margin-left: -20px;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 210, 255, 0.5);
-            background: radial-gradient(circle, rgba(0, 210, 255, 0.2) 0%, transparent 70%);
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.6), inset 0 0 15px rgba(0, 210, 255, 0.4);
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate3d(-100px, -100px, 0);
-            transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, margin 0.3s ease;
-            will-change: transform, width, height;
-            mix-blend-mode: screen;
-        }
+        /* ⚡ Performance Mode - Disable all animations & transitions */
+body.performance-mode *,
+body.performance-mode *::before,
+body.performance-mode *::after {
+  animation: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
 
-        body.hovering .cursor-glow {
-            width: 70px;
-            height: 70px;
-            margin-top: -35px;
-            margin-left: -35px;
-            background: radial-gradient(circle, rgba(245, 176, 65, 0.25) 0%, transparent 70%);
-            border-color: rgba(245, 176, 65, 0.8);
-            box-shadow: 0 0 25px rgba(245, 176, 65, 0.8), inset 0 0 20px rgba(245, 176, 65, 0.5);
-        }
+body.performance-mode .bg-orb,
+body.performance-mode .circuit-bg,
+body.performance-mode #particles-js {
+  display: none !important;
+}
 
-        /* Hide default cursor only if not on touch device */
-        @media (pointer: fine) {
-            body {
-                cursor: none;
-            }
-
-            a,
-            button,
-            input,
-            select,
-            .glass-panel,
-            .dashboard-card {
-                cursor: none;
-            }
-        }
+body.performance-mode .view-section.active {
+  animation: none !important;
+}
 
 /* ===== Next Style Block ===== */
 @keyframes spin {
@@ -1080,5 +1055,21 @@ body.dark-mode .excel-table-header th {
     .excel-table-wrapper {
         overflow: visible !important;
     }
+}
+
+/* 🔄 Drag-and-Drop for Links Table */
+tr.link-row[draggable="true"]:active {
+    cursor: grabbing;
+    opacity: 0.6;
+}
+
+tr.link-row.drag-over {
+    border-top: 2px solid var(--electric-blue) !important;
+    background: rgba(0, 210, 255, 0.05);
+}
+
+tr.link-row.drag-over-bottom {
+    border-bottom: 2px solid var(--electric-blue) !important;
+    background: rgba(0, 210, 255, 0.05);
 }
 
