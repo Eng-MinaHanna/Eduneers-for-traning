@@ -214,12 +214,6 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
       if (currentView === 'analytics' && attendanceChartInstance) { loadAnalytics('group'); }
     }
 
-    function togglePerformanceMode() {
-      const isPerf = document.body.classList.toggle('performance-mode');
-      localStorage.setItem('performanceMode', isPerf);
-      document.getElementById('perfToggle').innerText = isPerf ? '💤' : '⚡';
-    }
-
     function updateOfflineBadge() {
       const badge = document.getElementById('offlineBadge'); const countSpan = document.getElementById('offlineCount');
       if (offlineQueue.length > 0) {
@@ -263,7 +257,6 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
     window.onload = function () {
       try {
         if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); document.getElementById('themeToggle').innerText = '🌙'; }
-        if (localStorage.getItem('performanceMode') === 'true') { document.body.classList.add('performance-mode'); document.getElementById('perfToggle').innerText = '💤'; }
         updateOfflineBadge(); 
         
         // Setup auto-sync when network returns
@@ -1151,6 +1144,44 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
         });
       }
     }
+
+// ==================== SECTION ====================
+// --- MAGNETIC CURSOR LOGIC ---
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.matchMedia("(pointer: fine)").matches) {
+        const cursorGlow = document.createElement('div');
+        cursorGlow.classList.add('cursor-glow');
+        document.body.appendChild(cursorGlow);
+
+        let mouseX = -100, mouseY = -100;
+        let cursorX = -100, cursorY = -100;
+
+        document.addEventListener('mousemove', (e) => {
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+        });
+
+        function animateCursor() {
+          cursorX += (mouseX - cursorX) * 0.15;
+          cursorY += (mouseY - cursorY) * 0.15;
+          cursorGlow.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+          requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        const addHoverListeners = () => {
+          document.querySelectorAll('button, a, input, select, .glass-panel, .dashboard-card').forEach(el => {
+            if (!el.dataset.hasCursorHover) {
+              el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+              el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+              el.dataset.hasCursorHover = "true";
+            }
+          });
+        };
+        addHoverListeners();
+        setInterval(addHoverListeners, 2000);
+      }
+    });
 
     // --- SMOOTH BACKGROUND PARTICLES (CSS-only, no JS overhead) ---
     document.addEventListener('DOMContentLoaded', () => {
