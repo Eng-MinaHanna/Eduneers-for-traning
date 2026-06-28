@@ -1879,3 +1879,156 @@ body.performance-mode .view-section.active {
   animation: none !important;
 }
 
+/* 📱 Phone screens ≤480px */
+@media (max-width: 480px) {
+  .nav-actions {
+    gap: 4px !important;
+  }
+  .nav-badge {
+    display: none !important;
+  }
+  #globalGroupSelect {
+    max-width: 70px !important;
+    font-size: 10px !important;
+    padding: 0 5px !important;
+  }
+  .sidebar {
+    width: 80vw !important;
+    right: -82vw !important;
+  }
+  .sidebar.open {
+    right: 0 !important;
+  }
+  .sidebar a {
+    padding: 12px 15px !important;
+    font-size: 13px !important;
+  }
+  .tabs-container {
+    gap: 2px !important;
+  }
+  .tab-item {
+    min-width: 55px !important;
+    padding: 8px 4px !important;
+    font-size: 0.75rem !important;
+    gap: 3px !important;
+  }
+  .tab-item span:first-child {
+    font-size: 1rem !important;
+  }
+  .view-section {
+    padding: 15px 12px !important;
+  }
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 5px !important;
+  }
+  .dashboard-header span {
+    font-size: 14px !important;
+  }
+  .dashboard-header + div > div:last-child {
+    flex-direction: column !important;
+  }
+  #view-dashboard button.btn-secondary,
+  #view-dashboard button.btn-excel {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+  .table-container table {
+    font-size: 11px !important;
+  }
+  .table-container th,
+  .table-container td {
+    padding: 8px 6px !important;
+  }
+  .table-container th {
+    font-size: 10px !important;
+  }
+  #view-analytics h3 {
+    font-size: 18px !important;
+  }
+  #view-analytics .flex-container,
+  #view-analytics div[style*="display: flex"] {
+    flex-direction: column !important;
+  }
+  #view-analytics button {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+  .chart-container {
+    height: 250px !important;
+  }
+  #view-users div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  #view-users select,
+  #view-users input {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+  #view-users input[type="text"] {
+    width: 100% !important;
+  }
+  #view-users button {
+    padding: 10px !important;
+    font-size: 12px !important;
+    width: 100% !important;
+  }
+  #view-users .form-wrapper {
+    flex-direction: column !important;
+  }
+  .mail-hero {
+    padding: 25px 15px 20px !important;
+  }
+  .mail-hero h3 {
+    font-size: 18px !important;
+  }
+  .mail-form-card {
+    padding: 18px !important;
+  }
+  .mail-form-card label {
+    font-size: 12px !important;
+  }
+  .mail-form-card input,
+  .mail-form-card select,
+  .mail-form-card textarea {
+    font-size: 12px !important;
+    padding: 10px !important;
+  }
+  .mail-form-card button {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+  .mail-stats {
+    gap: 6px !important;
+  }
+  .mail-stats .stat-chip {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+  #view-scanner h3,
+  #view-manual h3 {
+    font-size: 16px !important;
+  }
+  #cameraSelection {
+    font-size: 12px !important;
+    padding: 10px !important;
+  }
+  .btn-primary {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+  .btn-secondary {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+  #lectureContainer label {
+    font-size: 12px !important;
+  }
+  #lectureContainer select {
+    font-size: 12px !important;
+    padding: 8px !important;
+  }
+}
+

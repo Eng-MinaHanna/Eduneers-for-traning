@@ -1057,6 +1057,52 @@ body.dark-mode .excel-table-header th {
     }
 }
 
+/* 📱 Phone responsive for Links Card */
+@media (max-width: 480px) {
+  #links-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #targetStudentCode,
+  #personalApiInput {
+    font-size: 11px !important;
+    padding: 10px !important;
+  }
+  #links-search-box {
+    width: 100% !important;
+  }
+  #links-table-wrapper {
+    overflow-x: auto !important;
+    max-height: 300px !important;
+  }
+  #links-table-wrapper table {
+    min-width: 420px;
+  }
+  #mappedLinksMonitorTable td:nth-child(2) {
+    max-width: 80px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  #mappedLinksMonitorTable td:nth-child(2):hover {
+    overflow: visible !important;
+    white-space: normal !important;
+    word-break: break-all !important;
+    background: var(--primary-light);
+    position: relative;
+    z-index: 1;
+  }
+  #mappedLinksMonitorTable td:nth-child(3) button {
+    font-size: 8px !important;
+    padding: 2px 3px !important;
+  }
+  #mappedLinksMonitorTable td:nth-child(3) button:nth-child(4),
+  #mappedLinksMonitorTable td:nth-child(3) button:nth-child(5),
+  #mappedLinksMonitorTable td:nth-child(3) button:nth-child(6) {
+    font-size: 11px !important;
+    padding: 1px !important;
+  }
+}
+
 /* 🔄 Drag-and-Drop for Links Table */
 tr.link-row[draggable="true"]:active {
     cursor: grabbing;

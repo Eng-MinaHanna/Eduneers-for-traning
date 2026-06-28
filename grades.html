@@ -452,7 +452,7 @@
                     </p>
 
                     <!-- Add student link fields -->
-                    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:12px; margin-bottom:20px;">
+                    <div id="links-form-grid" style="display:grid; grid-template-columns: 1fr 2fr; gap:12px; margin-bottom:20px;">
                         <div>
                             <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">كود الطالب:</label>
                             <input type="text" id="targetStudentCode" placeholder="مثال: K1"
@@ -475,7 +475,7 @@
                             <div style="font-size:14px; font-weight:bold; color:#fff;">📋 قائمة الطلاب المربوطين حالياً:</div>
                             
                             <!-- Local filter for table -->
-                            <div class="search-box" style="margin:0; width: 250px; position:relative;">
+                            <div id="links-search-box" class="search-box" style="margin:0; width: 250px; position:relative;">
                                 <input type="text" id="searchLinksInput" placeholder="بحث بكود الطالب..."
                                     onkeyup="filterLinksMonitorTable()"
                                     style="margin:0; padding:8px 12px; padding-right:32px; font-size:11px; width:100%; box-sizing:border-box; text-align:right;">
@@ -483,7 +483,7 @@
                             </div>
                         </div>
 
-                        <div style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 5px;">
+                        <div id="links-table-wrapper" style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); padding: 5px;">
                             <!-- Responsive modern table style -->
                             <table style="width:100%; border-collapse:collapse; text-align:right; font-size:12px;" dir="rtl">
                                 <thead>
