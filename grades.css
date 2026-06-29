@@ -1119,3 +1119,52 @@ tr.link-row.drag-over-bottom {
     background: rgba(0, 210, 255, 0.05);
 }
 
+/* 💬 Feedback Bulk Import View */
+#view-feedbackImport input[type="file"]::-webkit-file-upload-button {
+    background: var(--electric-blue);
+    color: #000;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-family: 'Cairo', sans-serif;
+}
+#view-feedbackImport input[type="file"]::-ms-browse {
+    background: var(--electric-blue);
+    color: #000;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+}
+#fbLog {
+    font-family: 'Courier New', monospace;
+}
+#fbResults h4 {
+    color: var(--accent);
+}
+
+@media (max-width: 480px) {
+    #view-feedbackImport h3 {
+        font-size: 18px !important;
+    }
+    #view-feedbackImport input,
+    #view-feedbackImport button {
+        font-size: 12px !important;
+        padding: 10px !important;
+    }
+    #fbStats {
+        flex-direction: column;
+        gap: 8px !important;
+    }
+    #fbStats span {
+        text-align: center;
+    }
+}
+

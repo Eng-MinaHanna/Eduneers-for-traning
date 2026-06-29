@@ -104,6 +104,7 @@
                     <span>استعلام عن طالب</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'topView')" id="nav-topView"
                     class="manager-only"><span>🏆</span> <span>لوحة الشرف Top 5</span></a>
+                <a href="feedback.html" id="nav-feedbackImport" class="admin-only"><span>💬</span> <span>Feedback شامل</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'settings')" id="nav-settings"
                     class="manager-only"><span>⚙️</span> <span>إعدادات النظام</span></a>
             </div>
@@ -150,8 +151,7 @@
                     </select>
                 </div>
 
-                <div class="grid-3">
-                    <div class="toggle-btn" id="attBtn" onclick="this.classList.toggle('active-att')">👤 حضور (15)</div>
+                <div class="grid-2">
                     <div class="toggle-btn" id="feedBtn" onclick="this.classList.toggle('active-feed')">💬 فيدباك (5)
                     </div>
                     <div class="toggle-btn" id="attitBtn" onclick="this.classList.toggle('active-attit')">⭐ سلوك (5)
@@ -272,7 +272,11 @@
                         <span style="font-size: 13px; color: var(--text-muted); font-weight: bold;">
                             💡 يمكنك رصد أو تعديل درجات أي متدرب مباشرة في الجدول وسيتم حساب المجموع تلقائياً، اضغط على زر حفظ لحفظ المتدرب.
                         </span>
-                        <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <button id="excelSaveAllBtn" onclick="saveAllExcelRows()"
+                                style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; padding: 6px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px; transition: all 0.2s ease; white-space: nowrap;">
+                                حفظ الكل 💾
+                            </button>
                             <span id="excelLecBadge" style="font-size: 12px; font-weight: 800; background: rgba(0, 210, 255, 0.1); color: var(--electric-blue); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0, 210, 255, 0.3);">
                                 المحاضرة النشطة: 1
                             </span>
@@ -530,7 +534,55 @@
             </div>
         </div>
 
+        <!-- Feedback Bulk Import View -->
+        <div id="view-feedbackImport" class="view-section admin-only">
+            <div style="max-width: 600px; margin: auto;">
+                <h3 style="color:var(--electric-blue); text-align:center; font-size:22px; font-weight:900; margin-bottom:5px;">
+                    💬 Feedback شامل</h3>
+                <p style="text-align:center; font-size:12px; opacity:0.7; margin-bottom:20px; color:var(--text-muted);">
+                    ارفع ملف Excel أو أدخل رابط Google Sheet لتطبيق Feedback على جميع الطلاب الموجودين
+                </p>
 
+                <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(128,128,128,0.15);">
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رقم المحاضرة (Lecture):</label>
+                        <input type="number" id="fbImportLec" value="1" min="1" max="50"
+                            style="font-size:14px; width:100%; padding:12px; border:1px solid rgba(0,210,255,0.2); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; text-align:center;">
+                    </div>
+
+                    <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">📁 رفع ملف Excel (.xlsx .xls):</label>
+                        <input type="file" id="fbFileInput" accept=".xlsx,.xls"
+                            style="font-size:12px; width:100%; padding:10px; border:1px dashed rgba(0,210,255,0.3); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box;">
+                    </div>
+
+                    <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">🔗 أو رابط Google Sheet (منشور كـ CSV):</label>
+                        <input type="url" id="fbSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+                            style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box;">
+                    </div>
+
+                    <button id="fbSubmitBtn" onclick="processFeedbackImport()"
+                        style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:0.3s;">
+                        🚀 تطبيق Feedback على جميع الطلاب
+                    </button>
+                </div>
+
+                <div id="fbResults" style="display:none;">
+                    <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; border: 1px solid rgba(128,128,128,0.15);">
+                        <h4 style="color:var(--accent); margin:0 0 15px 0; font-size:16px;">📋 نتيجة التطبيق</h4>
+                        <div id="fbStats" style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+                            <span id="fbFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                            <span id="fbSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                            <span id="fbFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                        </div>
+                        <div style="max-height:200px; overflow-y:auto; background:var(--card-bg); border-radius:8px; padding:10px; border:1px solid rgba(128,128,128,0.08);">
+                            <pre id="fbLog" style="font-size:11px; color:var(--text-muted); margin:0; white-space:pre-wrap; direction:ltr; text-align:left;"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
     <script src="grades.js?v=1.0.5"></script>

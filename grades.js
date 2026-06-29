@@ -44,6 +44,15 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             return groupOverride || originalUrl;
         }
 
+        function getApiForGroup(groupName) {
+            const override = localStorage.getItem(`GROUP_API_${groupName}`);
+            return override || GRADES_API;
+        }
+
+        function getAuthParamsForGroup(groupName) {
+            return `&email=${encodeURIComponent(localStorage.getItem('userEmail'))}&token=${encodeURIComponent(localStorage.getItem('sessionToken'))}&group=${encodeURIComponent(groupName)}`;
+        }
+
         // 🔗 دالة جلب رابط الطالب الفردي
         function getPersonalApi(studentCode) {
             let linksMap = JSON.parse(localStorage.getItem('PERSONAL_LINKS_MAP') || '{}');
@@ -872,14 +881,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             let promises = [];
             let taskName = "TASK " + lec;
 
-            // 1. Save Attendance (scan) - Central
-            if (document.getElementById('attBtn').classList.contains('active-att')) {
-                promises.push(fetch(`${centralApi}?action=scan&qrCode=${code}&lectureNum=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})));
-            } else {
-                promises.push(fetch(`${centralApi}?action=deleteAttendance&qrCode=${code}&lectureNum=${lec}${auth}`).then(r => r.json()).catch(e => ({})));
-            }
-
-            // 2. Save Main Task Grade - Central
+            // 1. Save Main Task Grade - Central
             let taskValRaw = document.getElementById('valTask').value.trim();
             let quizValRaw = document.getElementById('valQuiz').value.trim();
 
@@ -918,13 +920,6 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             let personalApi = getPersonalApi(code);
             if (personalApi) {
                 console.log("Syncing to personal sheet:", personalApi);
-
-                // Attendance
-                const attActiveSubmit = document.getElementById('attBtn').classList.contains('active-att');
-                promises.push(
-                    fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=${attActiveSubmit ? 15 : 0}`)
-                        .then(r => r.json()).then(res => console.log("Sync Attendance:", res)).catch(e => console.error("Sync Error:", e))
-                );
 
                 // Main Task
                 if (taskVal !== "") {
@@ -975,7 +970,6 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             document.getElementById('valTask').value = "";
             document.getElementById('valQuiz').value = "";
             document.getElementById('valBonus').value = "";
-            document.getElementById('attBtn').classList.remove('active-att');
             document.getElementById('feedBtn').classList.remove('active-feed');
             document.getElementById('attitBtn').classList.remove('active-attit');
             document.getElementById('studentCode').focus();
@@ -1960,6 +1954,108 @@ window.recalculateExcelSum = function(id) {
     }
 };
 
+window.saveAllExcelRows = async function() {
+    const students = window.dashboardStudents || [];
+    if (students.length === 0) return showToast("❌ لا يوجد طلاب للحفظ", "error");
+
+    const btn = document.getElementById('excelSaveAllBtn');
+    if (!btn || btn.disabled) return;
+
+    const lec = document.getElementById('dbLecFrom').value || "1";
+    const auth = getAuthParams();
+    const centralApi = getEffectiveApi(GRADES_API);
+    let allPromises = [];
+    let savedCount = 0;
+    let skipCount = 0;
+    let taskName = "TASK " + lec;
+
+    btn.disabled = true;
+    btn.innerText = "جاري الحفظ⏳";
+    btn.style.background = 'rgba(245, 176, 65, 0.15)';
+    btn.style.color = 'var(--accent)';
+    btn.style.borderColor = 'rgba(245, 176, 65, 0.3)';
+
+    for (const student of students) {
+        const code = student.id;
+        const attActive = document.getElementById(`excel-att-${code}`)?.checked || false;
+        let taskValRaw = document.getElementById(`excel-task-${code}`)?.value.trim() || "";
+        let quizValRaw = document.getElementById(`excel-quiz-${code}`)?.value.trim() || "";
+        const f = document.getElementById(`excel-feed-${code}`)?.checked ? 1 : 0;
+        const a = document.getElementById(`excel-attit-${code}`)?.checked ? 5 : 0;
+        let bVal = document.getElementById(`excel-bonus-${code}`)?.value.trim() || "";
+        const b = convertNumerals(bVal) || 0;
+
+        if (taskValRaw === "") taskValRaw = "0";
+        if (quizValRaw === "") quizValRaw = "0";
+        if (taskValRaw === "0" && quizValRaw === "0") skipCount++;
+
+        const taskVal = convertNumerals(taskValRaw);
+        const quizVal = convertNumerals(quizValRaw);
+
+        let promises = [];
+
+        if (attActive) {
+            promises.push(fetch(`${centralApi}?action=scan&qrCode=${code}&lectureNum=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})));
+        } else {
+            promises.push(fetch(`${centralApi}?action=deleteAttendance&qrCode=${code}&lectureNum=${lec}${auth}`).then(r => r.json()).catch(e => ({})));
+        }
+
+        if (taskVal !== "") {
+            promises.push(fetch(`${centralApi}?action=saveGrade&qrCode=${code}&taskNum=${lec}&val=${taskVal}${auth}`).then(r => r.json()).catch(e => ({})));
+        }
+
+        if (quizVal !== "") {
+            promises.push(fetch(`${centralApi}?action=saveQuiz&qrCode=${code}&quizNum=${lec}&val=${quizVal}${auth}`).then(r => r.json()).catch(e => ({})));
+        }
+
+        promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
+
+        let personalApi = getPersonalApi(code);
+        if (personalApi) {
+            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attendance .15')}&val=${attActive ? 15 : 0}`).then(r => r.json()).catch(e => ({})));
+            if (taskVal !== "") {
+                promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('Main task. 70')}&val=${taskVal}`).then(r => r.json()).catch(e => ({})));
+            }
+            if (quizVal !== "") {
+                promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('online quize 25')}&val=${quizVal}`).then(r => r.json()).catch(e => ({})));
+            }
+            let combinedAtt = 0;
+            if (f) combinedAtt += 5;
+            if (a) combinedAtt += 5;
+            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`).then(r => r.json()).catch(e => ({})));
+            promises.push(fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent(taskName)}&category=${encodeURIComponent('bonus')}&val=${b}`).then(r => r.json()).catch(e => ({})));
+        }
+
+        allPromises.push(Promise.all(promises).then(() => { savedCount++; }));
+    }
+
+    if (allPromises.length === 0) {
+        btn.disabled = false;
+        btn.innerText = "حفظ الكل 💾";
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        playBeep('error');
+        return showToast("⚠️ لم يتم إدخال أي تقييم للحفظ!", "error");
+    }
+
+    try {
+        await Promise.all(allPromises);
+        playBeep('success');
+        showToast(`✅ تم حفظ ${savedCount} طالب بنجاح${skipCount > 0 ? ` (${skipCount} بدون درجات تاسك/كويز) ` : ''}للمحاضرة ${lec}!`, "success");
+    } catch (e) {
+        console.error("Save All Excel Rows Error:", e);
+        playBeep('error');
+        showToast(`❌ حدث خطأ في حفظ ${savedCount} من أصل ${students.length} طالب`, "error");
+    }
+
+    btn.disabled = false;
+    btn.innerText = "حفظ الكل 💾";
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+};
+
 window.saveExcelRow = async function(id) {
     const student = window.dashboardStudents.find(s => s.id === id);
     if (!student) return showToast("❌ المتدرب غير موجود", "error");
@@ -2099,5 +2195,182 @@ window.saveExcelRow = async function(id) {
         }, 3000);
     }
 };
+
+// ==========================================
+// Feedback Bulk Import
+// ==========================================
+let _xlsxLibLoaded = false;
+
+function loadXlsxLib() {
+    return new Promise((resolve, reject) => {
+        if (typeof XLSX !== 'undefined') { _xlsxLibLoaded = true; resolve(); return; }
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        script.onload = () => { _xlsxLibLoaded = true; resolve(); };
+        script.onerror = () => reject(new Error('Failed to load XLSX library'));
+        document.head.appendChild(script);
+    });
+}
+
+window.processFeedbackImport = async function() {
+    const lec = document.getElementById('fbImportLec').value.trim();
+    if (!lec) return showToast("❌ أدخل رقم المحاضرة", "error");
+
+    const fileInput = document.getElementById('fbFileInput');
+    const sheetUrl = document.getElementById('fbSheetUrl').value.trim();
+    const btn = document.getElementById('fbSubmitBtn');
+
+    if (!fileInput.files.length && !sheetUrl) {
+        return showToast("❌ ارفع ملف Excel أو أدخل رابط Google Sheet", "error");
+    }
+
+    btn.disabled = true;
+    btn.innerText = "جاري المعالجة⏳";
+    showToast("⏳ جاري قراءة البيانات...", "info");
+
+    try {
+        let codes = [];
+
+        if (fileInput.files.length) {
+            await loadXlsxLib();
+            const file = fileInput.files[0];
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            codes = extractCodesFromSheet(json);
+        } else if (sheetUrl) {
+            const resp = await fetch(sheetUrl);
+            if (!resp.ok) throw new Error('فشل تحميل الرابط');
+            const csvText = await resp.text();
+            const rows = csvText.split('\n').map(r => r.split(','));
+            codes = extractCodesFromSheet(rows);
+        }
+
+        if (codes.length === 0) {
+            btn.disabled = false;
+            btn.innerText = "🚀 تطبيق الفيدباك على جميع الطلاب";
+            return showToast("❌ لم يتم العثور على أكواد طلاب في الملف", "error");
+        }
+
+        showToast(`✅ تم العثور على ${codes.length} كود، جاري تطبيق الفيدباك...`, "success");
+
+        // Group codes by group letter (first char, e.g. K from K2EDUR9)
+        const groups = {};
+        for (const code of codes) {
+            const letter = code.charAt(0);
+            if (!groups[letter]) groups[letter] = [];
+            groups[letter].push(code);
+        }
+
+        let results = { success: 0, fail: 0 };
+        let logLines = [];
+
+        for (const [letter, groupCodes] of Object.entries(groups)) {
+            const groupName = 'Group ' + letter;
+            const centralApi = getApiForGroup(groupName);
+            const auth = getAuthParamsForGroup(groupName);
+
+            for (const code of groupCodes) {
+                try {
+                    const res = await fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=0&bonus=0${auth}`).then(r => r.json());
+                    if (res.status === 'success') {
+                        results.success++;
+                        logLines.push(`✅ [${groupName}] ${code} - تم`);
+                    } else {
+                        results.fail++;
+                        logLines.push(`❌ [${groupName}] ${code} - ${res.message || 'خطأ'}`);
+                    }
+                } catch (e) {
+                    results.fail++;
+                    logLines.push(`❌ [${groupName}] ${code} - فشل الاتصال`);
+                }
+            }
+        }
+
+        showResults(results, logLines);
+        playBeep('success');
+        showToast(`✅ تم تطبيق الفيدباك على ${results.success} طالب بنجاح${results.fail ? `، فشل ${results.fail}` : ''}`, "success");
+    } catch (e) {
+        console.error('Feedback import error:', e);
+        showToast("❌ حدث خطأ: " + e.message, "error");
+    }
+
+    btn.disabled = false;
+    btn.innerText = "🚀 تطبيق الفيدباك على جميع الطلاب";
+};
+
+function extractCodesFromSheet(rows) {
+    let codes = [];
+    let codeCol = -1;
+    const codePattern = /^[A-Za-z]\d+.*$/;
+
+    // Find header row containing "Codes" or "Code"
+    for (let r = 0; r < Math.min(10, rows.length); r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+            const cell = (row[c] || '').toString().trim();
+            if (/^codes?$/i.test(cell)) {
+                codeCol = c;
+                break;
+            }
+        }
+        if (codeCol !== -1) break;
+    }
+
+    // If no "Codes" header, scan all cells for code patterns
+    if (codeCol === -1) {
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            if (!row) continue;
+            for (let c = 0; c < row.length; c++) {
+                const cell = (row[c] || '').toString().trim();
+                const code = normalizeCode(cell);
+                if (code) codes.push(code);
+            }
+        }
+    } else {
+        // Scan below the header in the found column
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            if (!row || !row[codeCol]) continue;
+            const cell = row[codeCol].toString().trim();
+            const code = normalizeCode(cell);
+            if (code) codes.push(code);
+        }
+    }
+
+    // Deduplicate
+    return [...new Set(codes)];
+}
+
+function normalizeCode(val) {
+    if (!val) return null;
+    const trimmed = val.toString().trim().toUpperCase();
+    // Match pattern: letter + digits optionally followed by EDUR9
+    const match = trimmed.match(/^([A-Z]\d+)(EDUR9)?$/);
+    if (match) {
+        return match[1] + 'EDUR9';
+    }
+    return null;
+}
+
+function showResults(results, logLines) {
+    const container = document.getElementById('fbResults');
+    const foundEl = document.getElementById('fbFoundCount');
+    const successEl = document.getElementById('fbSuccessCount');
+    const failEl = document.getElementById('fbFailCount');
+    const logEl = document.getElementById('fbLog');
+
+    if (!container) return;
+    container.style.display = 'block';
+
+    const total = results.success + results.fail;
+    if (foundEl) foundEl.innerText = `📌 تم العثور على: ${total} كود`;
+    if (successEl) successEl.innerText = `✅ تم بنجاح: ${results.success}`;
+    if (failEl) failEl.innerText = results.fail ? `❌ فشل: ${results.fail}` : '';
+    if (logEl) logEl.innerText = logLines.join('\n');
+}
 
 
