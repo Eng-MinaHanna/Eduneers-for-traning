@@ -1787,11 +1787,8 @@ window.calculateSubmitPct = async function() {
         const auth = getAuthParams();
         const api = getEffectiveApi(GRADES_API);
 
-        const [rAttend, rTasks, rQuizzes, rExtra] = await Promise.all([
-            fetch(`${api}?action=getTop&fromLec=${fromLec}&toLec=${toLec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})),
-            fetch(`${api}?action=getTop&fromTask=${fromLec}&toTask=${toLec}${auth}`).then(r => r.json()).catch(e => ({})),
-            fetch(`${api}?action=getTop&fromQuiz=${fromLec}&toQuiz=${toLec}${auth}`).then(r => r.json()).catch(e => ({})),
-            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${fromLec}&toLec=${toLec}${auth}`).then(r => r.json()).catch(e => ({}))
+        const [rTasks] = await Promise.all([
+            fetch(`${api}?action=getTop&fromTask=${fromLec}&toTask=${toLec}${auth}`).then(r => r.json()).catch(e => ({}))
         ]);
 
         const total = window.dashboardStudents ? window.dashboardStudents.length : 0;
@@ -1801,10 +1798,7 @@ window.calculateSubmitPct = async function() {
         }
 
         const submitted = new Set();
-        if (rAttend && rAttend.scores) rAttend.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
         if (rTasks && rTasks.scores) rTasks.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
-        if (rQuizzes && rQuizzes.scores) rQuizzes.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
-        if (rExtra && rExtra.scores) rExtra.scores.forEach(s => { if (parseFloat(s.total) > 0) submitted.add(s.id); });
 
         const count = submitted.size;
         const pct = Math.round((count / total) * 100);
@@ -2263,15 +2257,42 @@ window.processFeedbackImport = async function() {
             groups[letter].push(code);
         }
 
-        let results = { success: 0, fail: 0 };
+        // Fetch attendance for each group for the selected lecture
+        const attendanceMap = {};
+        for (const [letter] of Object.entries(groups)) {
+            const groupName = 'Group ' + letter;
+            const api = getApiForGroup(groupName);
+            const a = getAuthParamsForGroup(groupName);
+            try {
+                const attResp = await fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${a}`).then(r => r.json());
+                if (attResp && attResp.scores) {
+                    attendanceMap[letter] = {};
+                    for (const s of attResp.scores) {
+                        if (parseFloat(s.total) >= 15) {
+                            attendanceMap[letter][s.id] = true;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log(`فشل جلب بيانات الحضور لـ ${groupName}، سيتم تطبيق الفيدباك للجميع`);
+            }
+        }
+
+        let results = { success: 0, fail: 0, skipped: 0 };
         let logLines = [];
 
         for (const [letter, groupCodes] of Object.entries(groups)) {
             const groupName = 'Group ' + letter;
             const centralApi = getApiForGroup(groupName);
             const auth = getAuthParamsForGroup(groupName);
+            const groupAttendance = attendanceMap[letter] || {};
 
             for (const code of groupCodes) {
+                if (!groupAttendance[code]) {
+                    results.skipped++;
+                    logLines.push(`⏭️ [${groupName}] ${code} - لم يحضر المحاضرة ${lec}`);
+                    continue;
+                }
                 try {
                     const res = await fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=0&bonus=0${auth}`).then(r => r.json());
                     if (res.status === 'success') {
@@ -2360,15 +2381,24 @@ function showResults(results, logLines) {
     const container = document.getElementById('fbResults');
     const foundEl = document.getElementById('fbFoundCount');
     const successEl = document.getElementById('fbSuccessCount');
+    const skippedEl = document.getElementById('fbSkippedCount');
     const failEl = document.getElementById('fbFailCount');
     const logEl = document.getElementById('fbLog');
 
     if (!container) return;
     container.style.display = 'block';
 
-    const total = results.success + results.fail;
+    const total = results.success + results.fail + results.skipped;
     if (foundEl) foundEl.innerText = `📌 تم العثور على: ${total} كود`;
     if (successEl) successEl.innerText = `✅ تم بنجاح: ${results.success}`;
+    if (skippedEl) {
+        if (results.skipped) {
+            skippedEl.style.display = 'inline-block';
+            skippedEl.innerText = `⏭️ لم يحضر: ${results.skipped}`;
+        } else {
+            skippedEl.style.display = 'none';
+        }
+    }
     if (failEl) failEl.innerText = results.fail ? `❌ فشل: ${results.fail}` : '';
     if (logEl) logEl.innerText = logLines.join('\n');
 }

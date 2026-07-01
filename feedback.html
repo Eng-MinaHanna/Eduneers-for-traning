@@ -74,7 +74,7 @@
 
                 <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(128,128,128,0.15);">
                     <div style="margin-bottom: 15px;">
-                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رقم المحاضرة (Lecture):</label>
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رقم المحاضرة (Lecture) — سيتم فحص الحضور لها أولاً:</label>
                         <input type="number" id="fbImportLec" value="1" min="1" max="50" style="font-size:14px; width:100%; padding:12px; border:1px solid rgba(0,210,255,0.2); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; text-align:center;">
                     </div>
                     <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
@@ -94,6 +94,7 @@
                         <div id="fbStats" style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
                             <span id="fbFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                             <span id="fbSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                            <span id="fbSkippedCount" style="background:rgba(245,176,65,0.1); color:#f5b041; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
                             <span id="fbFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                         </div>
                         <div style="max-height:200px; overflow-y:auto; background:var(--card-bg); border-radius:8px; padding:10px; border:1px solid rgba(128,128,128,0.08);">
@@ -251,13 +252,22 @@
             var container = document.getElementById('fbResults');
             var foundEl = document.getElementById('fbFoundCount');
             var successEl = document.getElementById('fbSuccessCount');
+            var skippedEl = document.getElementById('fbSkippedCount');
             var failEl = document.getElementById('fbFailCount');
             var logEl = document.getElementById('fbLog');
             if (!container) return;
             container.style.display = 'block';
-            var total = results.success + results.fail;
+            var total = results.success + results.fail + results.skipped;
             if (foundEl) foundEl.innerText = '📌 تم العثور على: ' + total + ' كود';
             if (successEl) successEl.innerText = '✅ تم بنجاح: ' + results.success;
+            if (skippedEl) {
+                if (results.skipped) {
+                    skippedEl.style.display = 'inline-block';
+                    skippedEl.innerText = '⏭️ لم يحضر: ' + results.skipped;
+                } else {
+                    skippedEl.style.display = 'none';
+                }
+            }
             if (failEl) failEl.innerText = results.fail ? '❌ فشل: ' + results.fail : '';
             if (logEl) logEl.innerText = logLines.join('\n');
         }
@@ -304,9 +314,31 @@
                     groups[letter].push(codes[i]);
                 }
 
-                var results = { success: 0, fail: 0 };
-                var logLines = [];
+                // Fetch attendance for each group for the selected lecture
+                var attendanceMap = {};
                 var groupKeys = Object.keys(groups);
+                for (var g = 0; g < groupKeys.length; g++) {
+                    var letter = groupKeys[g];
+                    var groupName = 'Group ' + letter;
+                    var centralApi = getApiForGroup(groupName);
+                    var auth = getAuthParamsForGroup(groupName);
+                    try {
+                        var attResp = await fetch(centralApi + '?action=getTop&fromLec=' + lec + '&toLec=' + lec + '&weight=15' + auth).then(function (r) { return r.json(); });
+                        if (attResp && attResp.scores) {
+                            attendanceMap[letter] = {};
+                            for (var s = 0; s < attResp.scores.length; s++) {
+                                if (parseFloat(attResp.scores[s].total) >= 15) {
+                                    attendanceMap[letter][attResp.scores[s].id] = true;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('فشل جلب بيانات الحضور لـ ' + groupName + '، سيتم تطبيق الفيدباك للجميع');
+                    }
+                }
+
+                var results = { success: 0, fail: 0, skipped: 0 };
+                var logLines = [];
 
                 for (var g = 0; g < groupKeys.length; g++) {
                     var letter = groupKeys[g];
@@ -314,9 +346,15 @@
                     var groupName = 'Group ' + letter;
                     var centralApi = getApiForGroup(groupName);
                     var auth = getAuthParamsForGroup(groupName);
+                    var groupAttendance = attendanceMap[letter] || {};
 
                     for (var c = 0; c < groupCodes.length; c++) {
                         var code = groupCodes[c];
+                        if (!groupAttendance[code]) {
+                            results.skipped++;
+                            logLines.push('⏭️ [' + groupName + '] ' + code + ' - لم يحضر المحاضرة ' + lec);
+                            continue;
+                        }
                         try {
                             var res = await fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=1&attitude=0&bonus=0' + auth).then(function (r) { return r.json(); });
                             if (res.status === 'success') {
