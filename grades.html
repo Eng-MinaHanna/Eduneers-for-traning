@@ -84,14 +84,14 @@
                 <a href="#" onclick="gotoView('index.html', 'dashboard')" id="nav-dashboard"><span>📊</span> <span>لوحة
                         الحضور</span></a>
                 <a href="#" onclick="gotoView('index.html', 'analytics')" id="nav-analytics"
-                    class="manager-only"><span>📈</span> <span>إحصائيات الجروبات</span></a>
-                <a href="#" onclick="gotoView('index.html', 'mail')" id="nav-mail" class="manager-only"><span>📧</span>
+                    ><span>📈</span> <span>إحصائيات الجروبات</span></a>
+                <a href="#" onclick="gotoView('index.html', 'mail')" id="nav-mail" ><span>📧</span>
                     <span>الإعلانات والبريد</span></a>
             </div>
         </div>
 
         <!-- Grades Section -->
-        <div class="manager-only"
+        <div 
             style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(192, 132, 252, 0.3); box-shadow: 0 0 15px rgba(192, 132, 252, 0.05); overflow: hidden;">
             <div
                 style="background: rgba(192, 132, 252, 0.1); padding: 8px 15px; font-weight: 900; color: #c084fc; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(192, 132, 252, 0.1);">
@@ -103,22 +103,24 @@
                 <a href="#" onclick="gotoView('grades.html', 'searchView')" id="nav-searchView"><span>🔍</span>
                     <span>استعلام عن طالب</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'topView')" id="nav-topView"
-                    class="manager-only"><span>🏆</span> <span>لوحة الشرف Top 5</span></a>
-                <a href="feedback.html" id="nav-feedbackImport" class="admin-only"><span>💬</span> <span>Feedback شامل</span></a>
+                    ><span>🏆</span> <span>لوحة الشرف Top 5</span></a>
+                <a href="feedback.html" id="nav-feedbackImport" ><span>💬</span> <span>Feedback شامل</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'settings')" id="nav-settings"
-                    class="manager-only"><span>⚙️</span> <span>إعدادات النظام</span></a>
+                    ><span>⚙️</span> <span>إعدادات النظام</span></a>
             </div>
         </div>
 
         <!-- Admin Section -->
-        <div class="admin-only"
+        <div 
             style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(245, 176, 65, 0.3); box-shadow: 0 0 15px rgba(245, 176, 65, 0.05); overflow: hidden;">
             <div
                 style="background: rgba(245, 176, 65, 0.1); padding: 8px 15px; font-weight: 900; color: #f5b041; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(245, 176, 65, 0.1);">
                 ⚙️ الإدارة العليا</div>
             <div style="padding: 5px 0;">
-                <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" class="admin-only"><span>👥</span>
+                <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" ><span>👥</span>
                     <span>إدارة المستخدمين</span></a>
+                <a href="#" onclick="gotoView('GradesSpecific.html', 'taskRubric')" id="nav-taskRubric" ><span>🔧</span>
+                    <span>تهيئة الـ 70 درجة</span></a>
             </div>
         </div>
 
@@ -131,7 +133,7 @@
     <div class="container">
         <div id="toast"></div>
 
-        <div class="manager-only">
+        <div >
         </div>
 
         <div id="view-grading" class="view-section active">
@@ -508,7 +510,7 @@
                 </div>
 
                 <!-- Admin settings max limits -->
-                <div class="admin-only"
+                <div 
                     style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); padding: 25px; border-radius: 20px; backdrop-filter: blur(20px);">
                     <h4 style="margin-top:0; color:var(--text-main); font-size:18px; display:flex; align-items:center; gap:8px;">
                         <span>🎯</span> إعدادات نهايات الكويز العظمى للطلاب
@@ -531,6 +533,40 @@
 
                     <button class="btn-submit mutator" style="background:var(--text-main); color:var(--card-bg); font-size:13px; padding:12px;"
                         onclick="saveMaxConfig()">تثبيت الدرجة 🔒</button>
+            </div>
+        </div>
+
+        <!-- Task Rubric Config (Owner Only) -->
+        <div id="view-taskRubric" class="view-section owner-only">
+            <div style="max-width: 700px; margin: auto;">
+                <h3 style="color:var(--electric-blue); text-align:center; font-size:22px; font-weight:900; margin-bottom:5px;">🔧 تهيئة بنود الـ 70 درجة</h3>
+                <p style="text-align:center; font-size:12px; opacity:0.7; margin-bottom:20px; color:var(--text-muted);">قم بتحديد بنود التاسك التي يتكون منها مجموع 70 درجة</p>
+
+                <div id="rubricItemsContainer" style="margin-bottom:20px;"></div>
+
+                <div style="display:flex; gap:12px; margin-bottom:20px; align-items:end; flex-wrap:wrap;">
+                    <div style="flex:2; min-width:200px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">اسم البند:</label>
+                        <input type="text" id="rubricNewName" placeholder="مثال: تنضيف المعماري ونغيير لونه"
+                            style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1; min-width:100px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">الدرجة القصوى:</label>
+                        <input type="number" id="rubricNewMax" value="10" min="1" max="70"
+                            style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; text-align:center;">
+                    </div>
+                    <div>
+                        <button onclick="addRubricItem()"
+                            style="padding:12px 20px; border:none; border-radius:10px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:12px; cursor:pointer; white-space:nowrap;">
+                            ➕ إضافة بند
+                        </button>
+                    </div>
+                </div>
+
+                <div id="rubricTotalBar" style="background:var(--card-bg); border-radius:12px; padding:15px 20px; border:1px solid rgba(128,128,128,0.15); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <span style="font-size:14px; font-weight:bold; color:var(--text-muted);">المجموع الكلي:</span>
+                    <span id="rubricTotalDisplay" style="font-size:24px; font-weight:900; color:#10b981;">0 / 70</span>
+                </div>
             </div>
         </div>
 
@@ -562,6 +598,11 @@
                             style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box;">
                     </div>
 
+                    <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">✏️ أو أدخل الأكواد يدوياً (كود واحد في كل سطر):</label>
+                        <textarea id="fbManualCodes" placeholder="K2EDUR9&#10;A5EDUR9&#10;B12EDUR9" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:100px; resize:vertical;"></textarea>
+                    </div>
+
                     <button id="fbSubmitBtn" onclick="processFeedbackImport()"
                         style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:0.3s;">
                         🚀 تطبيق Feedback على جميع الطلاب
@@ -575,6 +616,7 @@
                             <span id="fbFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                             <span id="fbSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                             <span id="fbSkippedCount" style="background:rgba(245,176,65,0.1); color:#f5b041; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
+                            <span id="fbCrossedCount" style="background:rgba(239,68,68,0.15); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
                             <span id="fbFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                         </div>
                         <div style="max-height:200px; overflow-y:auto; background:var(--card-bg); border-radius:8px; padding:10px; border:1px solid rgba(128,128,128,0.08);">

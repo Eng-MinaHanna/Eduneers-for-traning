@@ -57,7 +57,7 @@
                 <a href="#" onclick="gotoView('grades.html', 'grading')"><span>📝</span> <span>رصد الدرجات</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'studentDashboard')"><span>📊</span> <span>لوحة درجات الطلاب</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'searchView')"><span>🔍</span> <span>استعلام عن طالب</span></a>
-                <a href="feedback.html" class="admin-only" style="display:flex;"><span>💬</span> <span>Feedback شامل</span></a>
+                <a href="feedback.html"  style="display:flex;"><span>💬</span> <span>Feedback شامل</span></a>
             </div>
         </div>
         <a href="#" onclick="logout()" style="color: #ef4444; margin: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; text-align: center; justify-content: center;"><span>🚪</span> <span>تسجيل الخروج</span></a>
@@ -67,7 +67,7 @@
     <div class="container">
         <div id="toast"></div>
 
-        <div id="view-feedbackImport" class="view-section admin-only" style="display:block !important;">
+        <div id="view-feedbackImport" class="view-section admin-only active" style="display:block !important;">
             <div style="max-width: 600px; margin: auto;">
                 <h3 style="color:var(--electric-blue); text-align:center; font-size:22px; font-weight:900; margin-bottom:5px;">💬 Feedback شامل</h3>
                 <p style="text-align:center; font-size:12px; opacity:0.7; margin-bottom:20px; color:var(--text-muted);">ارفع ملف Excel أو أدخل رابط Google Sheet لتطبيق Feedback على جميع الطلاب الموجودين</p>
@@ -85,6 +85,10 @@
                         <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">🔗 أو رابط Google Sheet (منشور كـ CSV):</label>
                         <input type="url" id="fbSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box;">
                     </div>
+                    <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">✏️ أو أدخل الأكواد يدوياً (كود واحد في كل سطر):</label>
+                        <textarea id="fbManualCodes" placeholder="K2EDUR9&#10;A5EDUR9&#10;B12EDUR9" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:80px; resize:vertical; font-family:monospace; direction:ltr; text-align:left;"></textarea>
+                    </div>
                     <button id="fbSubmitBtn" onclick="processFeedbackImport()" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:0.3s;">🚀 تطبيق Feedback على جميع الطلاب</button>
                 </div>
 
@@ -95,6 +99,7 @@
                             <span id="fbFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                             <span id="fbSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                             <span id="fbSkippedCount" style="background:rgba(245,176,65,0.1); color:#f5b041; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
+                            <span id="fbCrossedCount" style="background:rgba(239,68,68,0.15); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
                             <span id="fbFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                         </div>
                         <div style="max-height:200px; overflow-y:auto; background:var(--card-bg); border-radius:8px; padding:10px; border:1px solid rgba(128,128,128,0.08);">
@@ -211,6 +216,12 @@
             var trimmed = val.toString().trim().toUpperCase();
             var match = trimmed.match(/^([A-Z]\d+)(EDUR9)?$/);
             if (match) return match[1] + 'EDUR9';
+            var numMatch = trimmed.match(/^(\d+)$/);
+            if (numMatch) {
+                var group = localStorage.getItem('userGroup') || 'Group A';
+                var letter = group.replace('Group ', '').trim();
+                return letter + numMatch[1] + 'EDUR9';
+            }
             return null;
         }
 
@@ -254,10 +265,11 @@
             var successEl = document.getElementById('fbSuccessCount');
             var skippedEl = document.getElementById('fbSkippedCount');
             var failEl = document.getElementById('fbFailCount');
+            var crossedEl = document.getElementById('fbCrossedCount');
             var logEl = document.getElementById('fbLog');
             if (!container) return;
             container.style.display = 'block';
-            var total = results.success + results.fail + results.skipped;
+            var total = results.success + results.fail + results.skipped + (results.crossed || 0);
             if (foundEl) foundEl.innerText = '📌 تم العثور على: ' + total + ' كود';
             if (successEl) successEl.innerText = '✅ تم بنجاح: ' + results.success;
             if (skippedEl) {
@@ -266,6 +278,14 @@
                     skippedEl.innerText = '⏭️ لم يحضر: ' + results.skipped;
                 } else {
                     skippedEl.style.display = 'none';
+                }
+            }
+            if (crossedEl) {
+                if (results.crossed) {
+                    crossedEl.style.display = 'inline-block';
+                    crossedEl.innerText = '🚫 خارج الصلاحيات: ' + results.crossed;
+                } else {
+                    crossedEl.style.display = 'none';
                 }
             }
             if (failEl) failEl.innerText = results.fail ? '❌ فشل: ' + results.fail : '';
@@ -277,8 +297,9 @@
             if (!lec) return showToast('❌ أدخل رقم المحاضرة', 'error');
             var fileInput = document.getElementById('fbFileInput');
             var sheetUrl = document.getElementById('fbSheetUrl').value.trim();
+            var manualCodes = document.getElementById('fbManualCodes').value.trim();
             var btn = document.getElementById('fbSubmitBtn');
-            if (!fileInput.files.length && !sheetUrl) return showToast('❌ ارفع ملف Excel أو أدخل رابط Google Sheet', 'error');
+            if (!fileInput.files.length && !sheetUrl && !manualCodes) return showToast('❌ ارفع ملف Excel أو أدخل رابط Google Sheet أو أدخل أكواد يدوياً', 'error');
             btn.disabled = true;
             btn.innerText = 'جاري المعالجة⏳';
             showToast('⏳ جاري قراءة البيانات...', 'info');
@@ -298,6 +319,12 @@
                     var csvText = await resp.text();
                     var rows = csvText.split('\n').map(function (r) { return r.split(','); });
                     codes = extractCodesFromSheet(rows);
+                } else if (manualCodes) {
+                    var lines = manualCodes.split('\n');
+                    for (var i = 0; i < lines.length; i++) {
+                        var code = normalizeCode(lines[i]);
+                        if (code) codes.push(code);
+                    }
                 }
                 if (codes.length === 0) {
                     btn.disabled = false;
@@ -306,68 +333,56 @@
                 }
                 showToast('✅ تم العثور على ' + codes.length + ' كود، جاري تطبيق الفيدباك...', 'success');
 
-                // Group codes by group letter (first char, e.g. K from K2EDUR9)
-                var groups = {};
-                for (var i = 0; i < codes.length; i++) {
-                    var letter = codes[i].charAt(0);
-                    if (!groups[letter]) groups[letter] = [];
-                    groups[letter].push(codes[i]);
-                }
+                // Use coordinator's own group only
+                var userGroup = localStorage.getItem('userGroup') || 'Group A';
+                var groupLetter = userGroup.replace('Group ', '').trim();
+                var groupName = 'Group ' + groupLetter;
+                var centralApi = getApiForGroup(groupName);
+                var auth = getAuthParamsForGroup(groupName);
 
-                // Fetch attendance for each group for the selected lecture
+                // Fetch attendance for this group
                 var attendanceMap = {};
-                var groupKeys = Object.keys(groups);
-                for (var g = 0; g < groupKeys.length; g++) {
-                    var letter = groupKeys[g];
-                    var groupName = 'Group ' + letter;
-                    var centralApi = getApiForGroup(groupName);
-                    var auth = getAuthParamsForGroup(groupName);
-                    try {
-                        var attResp = await fetch(centralApi + '?action=getTop&fromLec=' + lec + '&toLec=' + lec + '&weight=15' + auth).then(function (r) { return r.json(); });
-                        if (attResp && attResp.scores) {
-                            attendanceMap[letter] = {};
-                            for (var s = 0; s < attResp.scores.length; s++) {
-                                if (parseFloat(attResp.scores[s].total) >= 15) {
-                                    attendanceMap[letter][attResp.scores[s].id] = true;
-                                }
+                try {
+                    var attResp = await fetch(centralApi + '?action=getTop&fromLec=' + lec + '&toLec=' + lec + '&weight=15' + auth).then(function (r) { return r.json(); });
+                    if (attResp && attResp.scores) {
+                        for (var s = 0; s < attResp.scores.length; s++) {
+                            if (parseFloat(attResp.scores[s].total) >= 15) {
+                                attendanceMap[attResp.scores[s].id] = true;
                             }
                         }
-                    } catch (e) {
-                        console.log('فشل جلب بيانات الحضور لـ ' + groupName + '، سيتم تطبيق الفيدباك للجميع');
                     }
+                } catch (e) {
+                    console.log('فشل جلب بيانات الحضور لـ ' + groupName);
                 }
 
-                var results = { success: 0, fail: 0, skipped: 0 };
+                var results = { success: 0, fail: 0, skipped: 0, crossed: 0 };
                 var logLines = [];
 
-                for (var g = 0; g < groupKeys.length; g++) {
-                    var letter = groupKeys[g];
-                    var groupCodes = groups[letter];
-                    var groupName = 'Group ' + letter;
-                    var centralApi = getApiForGroup(groupName);
-                    var auth = getAuthParamsForGroup(groupName);
-                    var groupAttendance = attendanceMap[letter] || {};
-
-                    for (var c = 0; c < groupCodes.length; c++) {
-                        var code = groupCodes[c];
-                        if (!groupAttendance[code]) {
-                            results.skipped++;
-                            logLines.push('⏭️ [' + groupName + '] ' + code + ' - لم يحضر المحاضرة ' + lec);
-                            continue;
-                        }
-                        try {
-                            var res = await fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=1&attitude=0&bonus=0' + auth).then(function (r) { return r.json(); });
-                            if (res.status === 'success') {
-                                results.success++;
-                                logLines.push('✅ [' + groupName + '] ' + code + ' - تم');
-                            } else {
-                                results.fail++;
-                                logLines.push('❌ [' + groupName + '] ' + code + ' - ' + (res.message || 'خطأ'));
-                            }
-                        } catch (e) {
+                for (var c = 0; c < codes.length; c++) {
+                    var code = codes[c];
+                    // Reject codes from other groups
+                    if (code.charAt(0) !== groupLetter) {
+                        results.crossed++;
+                        logLines.push('❌ ' + code + ' - خارج الصلاحيات (المجموعة ' + code.charAt(0) + ')');
+                        continue;
+                    }
+                    if (!attendanceMap[code]) {
+                        results.skipped++;
+                        logLines.push('⏭️ [' + groupName + '] ' + code + ' - لم يحضر المحاضرة ' + lec);
+                        continue;
+                    }
+                    try {
+                        var res = await fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=1&attitude=0&bonus=0' + auth).then(function (r) { return r.json(); });
+                        if (res.status === 'success') {
+                            results.success++;
+                            logLines.push('✅ [' + groupName + '] ' + code + ' - تم');
+                        } else {
                             results.fail++;
-                            logLines.push('❌ [' + groupName + '] ' + code + ' - فشل الاتصال');
+                            logLines.push('❌ [' + groupName + '] ' + code + ' - ' + (res.message || 'خطأ'));
                         }
+                    } catch (e) {
+                        results.fail++;
+                        logLines.push('❌ [' + groupName + '] ' + code + ' - فشل الاتصال');
                     }
                 }
                 showResults(results, logLines);
@@ -390,7 +405,7 @@
             var role = rawRole.toUpperCase();
             if (role === 'CADRE') { window.location.href = 'index.html'; return; }
 
-            var isAuthorized = (role === 'TEAM MANAGER' || role === 'ADMIN' || role === 'CO-FOUNDER' || role === 'OWNER');
+            var isAuthorized = (role === 'TEAM MANAGER' || role === 'ADMIN' || role === 'CO-FOUNDER' || role === 'OWNER' || role === 'COORDINATOR' || role === 'MANAGER');
             if (!isAuthorized) { window.location.href = 'grades.html'; showToast('❌ ليس لديك صلاحية الوصول لهذه الصفحة', 'error'); return; }
 
             var name = localStorage.getItem('userName') || 'مهندس';

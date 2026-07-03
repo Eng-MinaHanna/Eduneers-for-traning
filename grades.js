@@ -183,7 +183,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
 
                 // Restore saved view or default to grading
                 const savedView = localStorage.getItem('savedView');
-                if (savedView && ['grading', 'studentDashboard', 'searchView', 'topView', 'settings'].includes(savedView)) {
+                if (savedView && ['grading', 'studentDashboard', 'searchView', 'topView', 'settings', 'taskRubric'].includes(savedView)) {
                     switchView(savedView);
                 } else {
                     switchView('grading');
@@ -1244,6 +1244,9 @@ window.switchView = function(viewId) {
     document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
     const navItem = document.getElementById(`nav-${viewId}`);
     if (navItem) navItem.classList.add('active');
+
+    // Render rubric checklist when entering grading view
+    if (viewId === 'grading') renderRubricInGrading();
 };
 
 // 🎓 Load trainees from server central sheet
@@ -2212,10 +2215,12 @@ window.processFeedbackImport = async function() {
 
     const fileInput = document.getElementById('fbFileInput');
     const sheetUrl = document.getElementById('fbSheetUrl').value.trim();
+    const manualCodesEl = document.getElementById('fbManualCodes');
+    const manualCodes = manualCodesEl ? manualCodesEl.value.trim() : '';
     const btn = document.getElementById('fbSubmitBtn');
 
-    if (!fileInput.files.length && !sheetUrl) {
-        return showToast("❌ ارفع ملف Excel أو أدخل رابط Google Sheet", "error");
+    if (!fileInput.files.length && !sheetUrl && !manualCodes) {
+        return showToast("❌ ارفع ملف Excel أو أدخل رابط Google Sheet أو أدخل أكواد يدوياً", "error");
     }
 
     btn.disabled = true;
@@ -2239,6 +2244,12 @@ window.processFeedbackImport = async function() {
             const csvText = await resp.text();
             const rows = csvText.split('\n').map(r => r.split(','));
             codes = extractCodesFromSheet(rows);
+        } else if (manualCodes) {
+            const lines = manualCodes.split('\n');
+            for (const line of lines) {
+                const code = normalizeCode(line);
+                if (code) codes.push(code);
+            }
         }
 
         if (codes.length === 0) {
@@ -2249,63 +2260,55 @@ window.processFeedbackImport = async function() {
 
         showToast(`✅ تم العثور على ${codes.length} كود، جاري تطبيق الفيدباك...`, "success");
 
-        // Group codes by group letter (first char, e.g. K from K2EDUR9)
-        const groups = {};
-        for (const code of codes) {
-            const letter = code.charAt(0);
-            if (!groups[letter]) groups[letter] = [];
-            groups[letter].push(code);
-        }
+        // Use coordinator's own group only
+        const userGroup = localStorage.getItem('userGroup') || 'Group A';
+        const groupLetter = userGroup.replace('Group ', '').trim();
+        const groupName = 'Group ' + groupLetter;
+        const centralApi = getApiForGroup(groupName);
+        const auth = getAuthParamsForGroup(groupName);
 
-        // Fetch attendance for each group for the selected lecture
+        // Fetch attendance for this group
         const attendanceMap = {};
-        for (const [letter] of Object.entries(groups)) {
-            const groupName = 'Group ' + letter;
-            const api = getApiForGroup(groupName);
-            const a = getAuthParamsForGroup(groupName);
-            try {
-                const attResp = await fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${a}`).then(r => r.json());
-                if (attResp && attResp.scores) {
-                    attendanceMap[letter] = {};
-                    for (const s of attResp.scores) {
-                        if (parseFloat(s.total) >= 15) {
-                            attendanceMap[letter][s.id] = true;
-                        }
+        try {
+            const attResp = await fetch(`${centralApi}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${auth}`).then(r => r.json());
+            if (attResp && attResp.scores) {
+                for (const s of attResp.scores) {
+                    if (parseFloat(s.total) >= 15) {
+                        attendanceMap[s.id] = true;
                     }
                 }
-            } catch (e) {
-                console.log(`فشل جلب بيانات الحضور لـ ${groupName}، سيتم تطبيق الفيدباك للجميع`);
             }
+        } catch (e) {
+            console.log(`فشل جلب بيانات الحضور لـ ${groupName}`);
         }
 
-        let results = { success: 0, fail: 0, skipped: 0 };
+        let results = { success: 0, fail: 0, skipped: 0, crossed: 0 };
         let logLines = [];
 
-        for (const [letter, groupCodes] of Object.entries(groups)) {
-            const groupName = 'Group ' + letter;
-            const centralApi = getApiForGroup(groupName);
-            const auth = getAuthParamsForGroup(groupName);
-            const groupAttendance = attendanceMap[letter] || {};
-
-            for (const code of groupCodes) {
-                if (!groupAttendance[code]) {
-                    results.skipped++;
-                    logLines.push(`⏭️ [${groupName}] ${code} - لم يحضر المحاضرة ${lec}`);
-                    continue;
-                }
-                try {
-                    const res = await fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=0&bonus=0${auth}`).then(r => r.json());
-                    if (res.status === 'success') {
-                        results.success++;
-                        logLines.push(`✅ [${groupName}] ${code} - تم`);
-                    } else {
-                        results.fail++;
-                        logLines.push(`❌ [${groupName}] ${code} - ${res.message || 'خطأ'}`);
-                    }
-                } catch (e) {
+        for (const code of codes) {
+            // Reject codes from other groups
+            if (code.charAt(0) !== groupLetter) {
+                results.crossed++;
+                logLines.push(`❌ ${code} - خارج الصلاحيات (المجموعة ${code.charAt(0)})`);
+                continue;
+            }
+            if (!attendanceMap[code]) {
+                results.skipped++;
+                logLines.push(`⏭️ [${groupName}] ${code} - لم يحضر المحاضرة ${lec}`);
+                continue;
+            }
+            try {
+                const res = await fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=0&bonus=0${auth}`).then(r => r.json());
+                if (res.status === 'success') {
+                    results.success++;
+                    logLines.push(`✅ [${groupName}] ${code} - تم`);
+                } else {
                     results.fail++;
-                    logLines.push(`❌ [${groupName}] ${code} - فشل الاتصال`);
+                    logLines.push(`❌ [${groupName}] ${code} - ${res.message || 'خطأ'}`);
                 }
+            } catch (e) {
+                results.fail++;
+                logLines.push(`❌ [${groupName}] ${code} - فشل الاتصال`);
             }
         }
 
@@ -2369,10 +2372,15 @@ function extractCodesFromSheet(rows) {
 function normalizeCode(val) {
     if (!val) return null;
     const trimmed = val.toString().trim().toUpperCase();
-    // Match pattern: letter + digits optionally followed by EDUR9
+    // Full code: K1EDUR9 or K1
     const match = trimmed.match(/^([A-Z]\d+)(EDUR9)?$/);
-    if (match) {
-        return match[1] + 'EDUR9';
+    if (match) return match[1] + 'EDUR9';
+    // Bare number: 1 → get group prefix from localStorage
+    const numMatch = trimmed.match(/^(\d+)$/);
+    if (numMatch) {
+        const group = localStorage.getItem('userGroup') || 'Group A';
+        const letter = group.replace('Group ', '').trim();
+        return letter + numMatch[1] + 'EDUR9';
     }
     return null;
 }
@@ -2383,12 +2391,13 @@ function showResults(results, logLines) {
     const successEl = document.getElementById('fbSuccessCount');
     const skippedEl = document.getElementById('fbSkippedCount');
     const failEl = document.getElementById('fbFailCount');
+    const crossedEl = document.getElementById('fbCrossedCount');
     const logEl = document.getElementById('fbLog');
 
     if (!container) return;
     container.style.display = 'block';
 
-    const total = results.success + results.fail + results.skipped;
+    const total = results.success + results.fail + results.skipped + (results.crossed || 0);
     if (foundEl) foundEl.innerText = `📌 تم العثور على: ${total} كود`;
     if (successEl) successEl.innerText = `✅ تم بنجاح: ${results.success}`;
     if (skippedEl) {
@@ -2399,8 +2408,117 @@ function showResults(results, logLines) {
             skippedEl.style.display = 'none';
         }
     }
+    if (crossedEl) {
+        if (results.crossed) {
+            crossedEl.style.display = 'inline-block';
+            crossedEl.innerText = `🚫 خارج الصلاحيات: ${results.crossed}`;
+        } else {
+            crossedEl.style.display = 'none';
+        }
+    }
     if (failEl) failEl.innerText = results.fail ? `❌ فشل: ${results.fail}` : '';
     if (logEl) logEl.innerText = logLines.join('\n');
 }
+
+// ==================== Task Rubric (Owner Config) ====================
+function getTaskRubric() {
+    try {
+        return JSON.parse(localStorage.getItem('TASK_RUBRIC') || '[]');
+    } catch (e) { return []; }
+}
+
+function saveTaskRubric(items) {
+    localStorage.setItem('TASK_RUBRIC', JSON.stringify(items));
+    renderRubricConfig();
+    renderRubricInGrading();
+}
+
+function renderRubricConfig() {
+    const container = document.getElementById('rubricItemsContainer');
+    if (!container) return;
+    const items = getTaskRubric();
+    if (items.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:13px;">❌ لم يتم إضافة أي بنود بعد. أضف البنود أدناه.</div>';
+        document.getElementById('rubricTotalDisplay').innerText = '0 / 70';
+        return;
+    }
+    let html = '';
+    let total = 0;
+    for (let i = 0; i < items.length; i++) {
+        total += items[i].max;
+        html += `<div style="display:flex; align-items:center; gap:10px; background:var(--card-bg); border-radius:10px; padding:12px 15px; margin-bottom:8px; border:1px solid rgba(128,128,128,0.1);">
+            <span style="flex:1; font-size:13px; color:var(--text-main); font-weight:600;">${items[i].name}</span>
+            <span style="font-size:13px; font-weight:900; color:var(--electric-blue);">${items[i].max} درجة</span>
+            <button onclick="deleteRubricItem(${i})" style="background:rgba(239,68,68,0.15); border:none; color:#ef4444; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">🗑️</button>
+        </div>`;
+    }
+    container.innerHTML = html;
+    const totalEl = document.getElementById('rubricTotalDisplay');
+    if (totalEl) {
+        const color = total === 70 ? '#10b981' : total > 70 ? '#ef4444' : 'var(--accent)';
+        totalEl.style.color = color;
+        totalEl.innerText = `${total} / 70`;
+    }
+}
+
+window.addRubricItem = function() {
+    const nameEl = document.getElementById('rubricNewName');
+    const maxEl = document.getElementById('rubricNewMax');
+    const name = nameEl.value.trim();
+    const max = parseInt(maxEl.value) || 0;
+    if (!name) return showToast('❌ أدخل اسم البند', 'error');
+    if (max <= 0 || max > 70) return showToast('❌ الدرجة يجب أن تكون بين 1 و 70', 'error');
+    const items = getTaskRubric();
+    const currentTotal = items.reduce((s, i) => s + i.max, 0);
+    if (currentTotal + max > 70) return showToast(`❌ المجموع سيتجاوز 70 (الحد الأقصى: ${70 - currentTotal})`, 'error');
+    items.push({ name, max });
+    saveTaskRubric(items);
+    nameEl.value = '';
+    maxEl.value = '10';
+    showToast('✅ تم إضافة البند بنجاح', 'success');
+};
+
+window.deleteRubricItem = function(index) {
+    let items = getTaskRubric();
+    items.splice(index, 1);
+    saveTaskRubric(items);
+    showToast('✅ تم حذف البند', 'success');
+};
+
+function renderRubricInGrading() {
+    const items = getTaskRubric();
+    const taskContainer = document.getElementById('valTask');
+    const existingRubric = document.getElementById('rubricChecklist');
+    if (existingRubric) existingRubric.remove();
+
+    if (items.length === 0 || !taskContainer) return;
+
+    const rubricDiv = document.createElement('div');
+    rubricDiv.id = 'rubricChecklist';
+    rubricDiv.style.cssText = 'margin-top:10px; background:rgba(0,210,255,0.03); border-radius:10px; padding:12px; border:1px solid rgba(128,128,128,0.1);';
+
+    let html = '<div style="font-size:11px; font-weight:bold; color:var(--text-muted); margin-bottom:8px;">📋 بنود التاسك المفصلة:</div>';
+    for (let i = 0; i < items.length; i++) {
+        html += `<label style="display:flex; align-items:center; gap:8px; padding:4px 0; cursor:pointer; font-size:12px; color:var(--text-main);">
+            <input type="checkbox" class="rubric-check" data-index="${i}" onchange="updateTaskFromRubric()" style="width:16px; height:16px; cursor:pointer; accent-color:var(--electric-blue);">
+            <span style="flex:1;">${items[i].name}</span>
+            <span style="font-weight:bold; color:var(--electric-blue); font-size:11px;">(${items[i].max})</span>
+        </label>`;
+    }
+    rubricDiv.innerHTML = html;
+    taskContainer.parentNode.appendChild(rubricDiv);
+}
+
+window.updateTaskFromRubric = function() {
+    const items = getTaskRubric();
+    const checks = document.querySelectorAll('.rubric-check');
+    let total = 0;
+    checks.forEach(c => {
+        if (c.checked) {
+            total += items[parseInt(c.dataset.index)].max;
+        }
+    });
+    document.getElementById('valTask').value = total;
+};
 
 
