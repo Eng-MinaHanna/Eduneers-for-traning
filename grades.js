@@ -2371,7 +2371,10 @@ function extractCodesFromSheet(rows) {
 
 function normalizeCode(val) {
     if (!val) return null;
-    const trimmed = val.toString().trim().toUpperCase();
+    let trimmed = val.toString().trim().toUpperCase();
+    // Convert Arabic/Indian numerals to English
+    const arabicMap = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
+    trimmed = trimmed.replace(/[٠-٩]/g, c => arabicMap[c]);
     // Full code: K1EDUR9 or K1
     const match = trimmed.match(/^([A-Z]\d+)(EDUR9)?$/);
     if (match) return match[1] + 'EDUR9';

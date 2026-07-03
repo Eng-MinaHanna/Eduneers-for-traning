@@ -214,6 +214,8 @@
         function normalizeCode(val) {
             if (!val) return null;
             var trimmed = val.toString().trim().toUpperCase();
+            var arabicMap = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
+            trimmed = trimmed.replace(/[٠-٩]/g, function(c) { return arabicMap[c]; });
             var match = trimmed.match(/^([A-Z]\d+)(EDUR9)?$/);
             if (match) return match[1] + 'EDUR9';
             var numMatch = trimmed.match(/^(\d+)$/);
