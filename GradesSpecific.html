@@ -67,6 +67,7 @@
                 <a href="grades.html"><span>🔍</span> <span>استعلام عن طالب</span></a>
                 <a href="#" onclick="event.preventDefault(); toggleSidebar(); switchRubricView('grading');"  style="display:flex;"><span>📋</span> <span>تقييم الـ 70 درجة</span></a>
                 <a href="feedback.html"  style="display:flex;"><span>💬</span> <span>Feedback شامل</span></a>
+                <a href="TasksForAll.html" style="display:flex;"><span>📋</span> <span>Tasks للكل</span></a>
                 <a href="Quizes.html"  style="display:flex;"><span>📝</span> <span>Quizes</span></a>
                 <a href="grades.html"><span>⚙️</span> <span>إعدادات النظام</span></a>
             </div>
@@ -75,7 +76,7 @@
         <div  style="margin: 15px 15px; border-radius: 12px; border: 1px solid rgba(245, 176, 65, 0.3); box-shadow: 0 0 15px rgba(245, 176, 65, 0.05); overflow: hidden;">
             <div style="background: rgba(245, 176, 65, 0.1); padding: 8px 15px; font-weight: 900; color: #f5b041; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(245, 176, 65, 0.1);">⚙️ الإدارة العليا</div>
             <div style="padding: 5px 0;">
-                <a href="#" onclick="gotoView('index.html', 'users')" ><span>👥</span> <span>إدارة المستخدمين</span></a>
+                <a href="#" onclick="gotoView('index.html', 'users')" class="admin-only"><span>👥</span> <span>إدارة المستخدمين</span></a>
                 <a href="#" onclick="event.preventDefault(); toggleSidebar(); switchRubricView('taskRubric');"  style="display:flex;"><span>🔧</span> <span>تهيئة الـ 70 درجة</span></a>
             </div>
         </div>
@@ -119,11 +120,6 @@
                 </div>
 
                 <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:15px 0;">
-
-                <div class="grid-2">
-                    <div class="toggle-btn" id="feedBtn" onclick="this.classList.toggle('active-feed')">💬 فيدباك (5)</div>
-                    <div class="toggle-btn" id="attitBtn" onclick="this.classList.toggle('active-attit')">⭐ سلوك (5)</div>
-                </div>
 
                 <label style="font-size:13px; font-weight:bold; color:var(--text-muted);">بونص إضافي (Bonus)</label>
                 <input type="number" id="valBonus" placeholder="0">
@@ -444,11 +440,28 @@
                 promises.push(fetch(centralApi + '?action=saveQuiz&qrCode=' + encodeURIComponent(code) + '&quizNum=' + lec + '&val=' + quizVal + auth).then(function (r) { return r.json(); }).catch(function (e) { return ({}); }));
             }
 
-            // Extra (feedback, attitude, bonus)
-            var f = document.getElementById('feedBtn').classList.contains('active-feed') ? 1 : 0;
-            var a = document.getElementById('attitBtn').classList.contains('active-attit') ? 5 : 0;
+            // Extra (bonus only — feedback handled via import, attitude auto from attendance)
             var b = convertNumerals(document.getElementById('valBonus').value) || 0;
-            promises.push(fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=' + f + '&attitude=' + a + '&bonus=' + b + auth).then(function (r) { return r.json(); }).catch(function (e) { return ({}); }));
+            try {
+                var rAtt = await fetch(centralApi + '?action=getTop&fromLec=' + lec + '&toLec=' + lec + '&weight=15' + auth).then(function (r) { return r.json(); }).catch(function (e) { return ({}); });
+                var attScore = rAtt && rAtt.scores ? rAtt.scores.find(function (s) { return s.id === code; }) : null;
+                var a = (attScore && parseFloat(attScore.total) >= 15) ? 5 : 0;
+            } catch (e) { var a = 0; }
+            // Track attitude locally
+            if (a) localStorage.setItem('att_' + code + '_' + lec, '1');
+            else localStorage.removeItem('att_' + code + '_' + lec);
+            // Preserve existing feedback when saving attitude
+            var existingF = 0;
+            try {
+                var rExtra = await fetch(centralApi + '?action=getTop&extraOnly=1&fromLec=' + lec + '&toLec=' + lec + auth).then(function (r) { return r.json(); });
+                var extraScore = rExtra && rExtra.scores ? rExtra.scores.find(function (s) { return s.id === code; }) : null;
+                if (extraScore) {
+                    if (extraScore.feedback !== undefined) existingF = parseFloat(extraScore.feedback) >= 1 ? 5 : 0;
+                    else if (parseFloat(extraScore.total) >= 10) existingF = 5;
+                    else if (parseFloat(extraScore.total) >= 5 && localStorage.getItem('fb_' + code + '_' + lec)) existingF = 5;
+                }
+            } catch (e) { }
+            promises.push(fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=' + (existingF ? 1 : 0) + '&attitude=' + a + '&bonus=' + b + auth).then(function (r) { return r.json(); }).catch(function (e) { return ({}); }));
 
             // Sync to personal sheet
             var personalApi = getPersonalApi(code);
@@ -460,7 +473,6 @@
                     promises.push(fetch(personalApi + '?action=update&qrCode=' + encodeURIComponent(code) + '&taskName=' + encodeURIComponent(taskName) + '&category=' + encodeURIComponent('online quize 25') + '&val=' + quizVal).then(function (r) { return r.json(); }).then(function (res) { console.log('Sync Quiz:', res); }).catch(function (e) { console.error('Sync Error:', e); }));
                 }
                 var combinedAtt = 0;
-                if (f) combinedAtt += 5;
                 if (a) combinedAtt += 5;
                 promises.push(fetch(personalApi + '?action=update&qrCode=' + encodeURIComponent(code) + '&taskName=' + encodeURIComponent(taskName) + '&category=' + encodeURIComponent('attitude .10') + '&val=' + combinedAtt).then(function (r) { return r.json(); }).then(function (res) { console.log('Sync Attitude:', res); }).catch(function (e) { console.error('Sync Error:', e); }));
                 promises.push(fetch(personalApi + '?action=update&qrCode=' + encodeURIComponent(code) + '&taskName=' + encodeURIComponent(taskName) + '&category=' + encodeURIComponent('bonus') + '&val=' + b).then(function (r) { return r.json(); }).then(function (res) { console.log('Sync Bonus:', res); }).catch(function (e) { console.error('Sync Error:', e); }));
@@ -479,8 +491,6 @@
             document.getElementById('valTask').value = '';
             document.getElementById('valQuiz').value = '';
             document.getElementById('valBonus').value = '';
-            document.getElementById('feedBtn').classList.remove('active-feed');
-            document.getElementById('attitBtn').classList.remove('active-attit');
             // Uncheck rubric checkboxes
             var checks = document.querySelectorAll('.rubric-check');
             for (var i = 0; i < checks.length; i++) checks[i].checked = false;

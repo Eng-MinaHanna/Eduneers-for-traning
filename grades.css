@@ -1045,6 +1045,33 @@ body.dark-mode .custom-modal-btn-cancel:hover {
     transition: background 0.3s ease;
 }
 
+/* Sticky first 2 columns for mobile horizontal scroll — RTL: right edge is start */
+.excel-table th:nth-child(1),
+.excel-table td:nth-child(1) {
+    position: sticky;
+    right: 0;
+    z-index: 5;
+    background: #f1f5f9;
+}
+.excel-table th:nth-child(2),
+.excel-table td:nth-child(2) {
+    position: sticky;
+    right: 80px;
+    z-index: 5;
+    background: #f1f5f9;
+}
+body.dark-mode .excel-table th:nth-child(1),
+body.dark-mode .excel-table td:nth-child(1),
+body.dark-mode .excel-table th:nth-child(2),
+body.dark-mode .excel-table td:nth-child(2) {
+    background: #0f172a;
+}
+/* Elevate sticky header cells above column sticky */
+.excel-table-header th:nth-child(1),
+.excel-table-header th:nth-child(2) {
+    z-index: 11;
+}
+
 body.dark-mode .excel-table-header th {
     background: #0f172a; /* Solid background matching dark mode background */
 }
@@ -1170,6 +1197,57 @@ tr.link-row.drag-over-bottom {
     }
     #fbStats span {
         text-align: center;
+    }
+}
+
+/* 📱 Mobile compact mode for the excel sheet */
+@media (max-width: 600px) {
+    .excel-table-wrapper {
+        margin: 0 -12px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    .excel-table {
+        font-size: 10px;
+        min-width: 800px;
+    }
+    .excel-table th,
+    .excel-table td {
+        padding: 8px 4px !important;
+    }
+    .excel-table th {
+        font-size: 9px !important;
+    }
+    .excel-table input[type="number"] {
+        width: 48px !important;
+        font-size: 11px !important;
+        padding: 4px 2px !important;
+    }
+    .excel-table input[type="checkbox"] {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    .excel-table td:first-child {
+        font-size: 10px !important;
+    }
+    .excel-table td:nth-child(2) {
+        font-size: 10px !important;
+        max-width: 120px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .excel-table th:nth-child(1),
+    .excel-table td:nth-child(1) {
+        right: 0;
+        min-width: 60px;
+        width: 60px !important;
+    }
+    .excel-table th:nth-child(2),
+    .excel-table td:nth-child(2) {
+        right: 60px;
+        min-width: 100px;
     }
 }
 

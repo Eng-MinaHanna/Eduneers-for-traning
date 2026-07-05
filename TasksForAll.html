@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Eduneers | Quizes</title>
+    <title>Eduneers | Tasks</title>
     <link rel="stylesheet" href="grades.css?v=1.0.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
@@ -69,41 +69,41 @@
     <div class="container">
         <div id="toast"></div>
 
-        <div id="view-quizImport" class="view-section active" style="display:block !important;">
+        <div id="view-taskImport" class="view-section active" style="display:block !important;">
             <div style="max-width: 600px; margin: auto;">
-                <h3 style="color:var(--electric-blue); text-align:center; font-size:22px; font-weight:900; margin-bottom:5px;">📝 تسجيل درجات الكويزات</h3>
-                <p style="text-align:center; font-size:12px; opacity:0.7; margin-bottom:20px; color:var(--text-muted);">أدخل أكواد الطلاب ودرجات الكويز لكل محاضرة</p>
+                <h3 style="color:var(--electric-blue); text-align:center; font-size:22px; font-weight:900; margin-bottom:5px;">📋 تسجيل درجات التاسكات</h3>
+                <p style="text-align:center; font-size:12px; opacity:0.7; margin-bottom:20px; color:var(--text-muted);">أدخل أكواد الطلاب ودرجات التاسك لكل محاضرة</p>
 
                 <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid rgba(128,128,128,0.15);">
                     <div style="margin-bottom: 15px;">
                         <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">رقم المحاضرة (Lecture):</label>
-                        <input type="number" id="qzImportLec" value="1" min="1" max="50" style="font-size:14px; width:100%; padding:12px; border:1px solid rgba(0,210,255,0.2); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; text-align:center;">
+                        <input type="number" id="tskImportLec" value="1" min="1" max="50" style="font-size:14px; width:100%; padding:12px; border:1px solid rgba(0,210,255,0.2); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; text-align:center;">
                     </div>
 
                     <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
                         <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">👤 أكواد الطلاب (كود واحد في كل سطر):</label>
-                        <textarea id="qzCodes" placeholder="K1EDUR9&#10;K2EDUR9&#10;K3EDUR9" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:120px; resize:vertical; font-family:monospace; direction:ltr; text-align:left;"></textarea>
+                        <textarea id="tskCodes" placeholder="K1EDUR9&#10;K2EDUR9&#10;K3EDUR9" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:120px; resize:vertical; font-family:monospace; direction:ltr; text-align:left;"></textarea>
                     </div>
 
                     <div style="border-top: 1px solid rgba(128,128,128,0.1); padding-top: 15px; margin-bottom: 15px;">
-                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">📊 درجات الكويز (درجة واحدة في كل سطر — بنفس ترتيب الأكواد):</label>
-                        <textarea id="qzGrades" placeholder="15&#10;20&#10;18" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:120px; resize:vertical; font-family:monospace; direction:ltr; text-align:left;"></textarea>
+                        <label style="font-size:12px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:6px;">📊 درجات التاسك (درجة واحدة في كل سطر — بنفس ترتيب الأكواد):</label>
+                        <textarea id="tskGrades" placeholder="50&#10;65&#10;70" style="font-size:12px; width:100%; padding:12px; border:1px solid rgba(128,128,128,0.15); background:var(--card-bg); color:var(--text-main); border-radius:10px; box-sizing:border-box; min-height:120px; resize:vertical; font-family:monospace; direction:ltr; text-align:left;"></textarea>
                     </div>
 
-                    <button id="qzSubmitBtn" onclick="processQuizImport()" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:0.3s;">🚀 تسجيل درجات الكويز</button>
+                    <button id="tskSubmitBtn" onclick="processTaskImport()" style="width:100%; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg, var(--electric-blue), #0284c7); color:#fff; font-weight:900; font-size:14px; cursor:pointer; transition:0.3s;">🚀 تسجيل درجات التاسكات</button>
                 </div>
 
-                <div id="qzResults" style="display:none;">
+                <div id="tskResults" style="display:none;">
                     <div style="background: var(--card-bg); border-radius: 16px; padding: 20px; border: 1px solid rgba(128,128,128,0.15);">
                         <h4 style="color:var(--accent); margin:0 0 15px 0; font-size:16px;">📋 نتيجة التسجيل</h4>
-                        <div id="qzStats" style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
-                            <span id="qzFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
-                            <span id="qzSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
-                            <span id="qzCrossedCount" style="background:rgba(239,68,68,0.15); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
-                            <span id="qzFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                        <div id="tskStats" style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+                            <span id="tskFoundCount" style="background:rgba(0,210,255,0.1); color:var(--electric-blue); padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                            <span id="tskSuccessCount" style="background:rgba(16,185,129,0.1); color:#10b981; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
+                            <span id="tskCrossedCount" style="background:rgba(239,68,68,0.15); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold; display:none;"></span>
+                            <span id="tskFailCount" style="background:rgba(239,68,68,0.1); color:#ef4444; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:bold;"></span>
                         </div>
                         <div style="max-height:200px; overflow-y:auto; background:var(--card-bg); border-radius:8px; padding:10px; border:1px solid rgba(128,128,128,0.08);">
-                            <pre id="qzLog" style="font-size:11px; color:var(--text-muted); margin:0; white-space:pre-wrap; direction:ltr; text-align:left;"></pre>
+                            <pre id="tskLog" style="font-size:11px; color:var(--text-muted); margin:0; white-space:pre-wrap; direction:ltr; text-align:left;"></pre>
                         </div>
                     </div>
                 </div>
@@ -126,6 +126,11 @@
 
         function getAuthParamsForGroup(groupName) {
             return '&email=' + encodeURIComponent(localStorage.getItem('userEmail')) + '&token=' + encodeURIComponent(localStorage.getItem('sessionToken')) + '&group=' + encodeURIComponent(groupName);
+        }
+
+        function getPersonalApi(studentCode) {
+            var linksMap = JSON.parse(localStorage.getItem('PERSONAL_LINKS_MAP') || '{}');
+            return linksMap[studentCode] || localStorage.getItem('PERSONAL_API') || '';
         }
 
         function showToast(text, type) {
@@ -210,16 +215,16 @@
             return null;
         }
 
-        window.processQuizImport = async function () {
-            var lec = convertNumerals(document.getElementById('qzImportLec').value.trim());
+        window.processTaskImport = async function () {
+            var lec = convertNumerals(document.getElementById('tskImportLec').value.trim());
             if (!lec) return showToast('❌ أدخل رقم المحاضرة', 'error');
 
-            var codesRaw = document.getElementById('qzCodes').value.trim();
-            var gradesRaw = document.getElementById('qzGrades').value.trim();
-            var btn = document.getElementById('qzSubmitBtn');
+            var codesRaw = document.getElementById('tskCodes').value.trim();
+            var gradesRaw = document.getElementById('tskGrades').value.trim();
+            var btn = document.getElementById('tskSubmitBtn');
 
             if (!codesRaw) return showToast('❌ أدخل أكواد الطلاب', 'error');
-            if (!gradesRaw) return showToast('❌ أدخل درجات الكويز', 'error');
+            if (!gradesRaw) return showToast('❌ أدخل درجات التاسك', 'error');
 
             var codeLines = codesRaw.split('\n').filter(function(l) { return l.trim(); });
             var gradeLines = gradesRaw.split('\n').filter(function(l) { return l.trim(); });
@@ -240,14 +245,14 @@
                     if (!code) {
                         showToast('❌ كود غير صالح: ' + codeLines[i], 'error');
                         btn.disabled = false;
-                        btn.innerText = '🚀 تسجيل درجات الكويز';
+                        btn.innerText = '🚀 تسجيل درجات التاسكات';
                         return;
                     }
                     var grade = parseFloat(convertNumerals(gradeLines[i]));
                     if (isNaN(grade)) {
                         showToast('❌ درجة غير صالحة: ' + gradeLines[i], 'error');
                         btn.disabled = false;
-                        btn.innerText = '🚀 تسجيل درجات الكويز';
+                        btn.innerText = '🚀 تسجيل درجات التاسكات';
                         return;
                     }
                     codes.push(code);
@@ -256,7 +261,6 @@
 
                 showToast('✅ جاري تسجيل ' + codes.length + ' طالب...', 'success');
 
-                // Use coordinator's own group only
                 var userGroup = localStorage.getItem('userGroup') || 'Group A';
                 var groupLetter = userGroup.replace('Group ', '').trim();
                 var groupName = 'Group ' + groupLetter;
@@ -270,7 +274,6 @@
                     var code = codes[c];
                     var grade = grades[c];
 
-                    // Reject codes from other groups
                     if (code.charAt(0) !== groupLetter) {
                         results.crossed++;
                         logLines.push('❌ ' + code + ' - خارج الصلاحيات (المجموعة ' + code.charAt(0) + ')');
@@ -278,8 +281,13 @@
                     }
 
                     try {
-                        var res = await fetch(centralApi + '?action=saveQuiz&qrCode=' + encodeURIComponent(code) + '&quizNum=' + lec + '&val=' + grade + auth).then(function (r) { return r.json(); });
+                        var res = await fetch(centralApi + '?action=saveGrade&qrCode=' + encodeURIComponent(code) + '&taskNum=' + lec + '&val=' + grade + auth).then(function (r) { return r.json(); });
                         if (res.status === 'success') {
+                            // Sync to personal sheet
+                            var personalApi = getPersonalApi(code);
+                            if (personalApi) {
+                                await fetch(personalApi + '?action=update&qrCode=' + encodeURIComponent(code) + '&taskName=' + encodeURIComponent('TASK ' + lec) + '&category=' + encodeURIComponent('Main task. 70') + '&val=' + grade).then(function (r) { return r.json(); }).catch(function () {});
+                            }
                             results.success++;
                             logLines.push('✅ [' + groupName + '] ' + code + ' = ' + grade + ' - تم');
                         } else {
@@ -292,13 +300,12 @@
                     }
                 }
 
-                // Show results
-                var container = document.getElementById('qzResults');
-                var foundEl = document.getElementById('qzFoundCount');
-                var successEl = document.getElementById('qzSuccessCount');
-                var crossedEl = document.getElementById('qzCrossedCount');
-                var failEl = document.getElementById('qzFailCount');
-                var logEl = document.getElementById('qzLog');
+                var container = document.getElementById('tskResults');
+                var foundEl = document.getElementById('tskFoundCount');
+                var successEl = document.getElementById('tskSuccessCount');
+                var crossedEl = document.getElementById('tskCrossedCount');
+                var failEl = document.getElementById('tskFailCount');
+                var logEl = document.getElementById('tskLog');
 
                 if (container) container.style.display = 'block';
                 var total = results.success + results.fail + results.crossed;
@@ -318,15 +325,14 @@
                 playBeep('success');
                 showToast('✅ تم تسجيل ' + results.success + ' طالب بنجاح' + (results.fail ? '، فشل ' + results.fail : ''), 'success');
             } catch (e) {
-                console.error('Quiz import error:', e);
+                console.error('Task import error:', e);
                 showToast('❌ حدث خطأ: ' + e.message, 'error');
             }
 
             btn.disabled = false;
-            btn.innerText = '🚀 تسجيل درجات الكويز';
+            btn.innerText = '🚀 تسجيل درجات التاسكات';
         };
 
-        // Init on load
         window.onload = function () {
             if (localStorage.getItem('isLoggedIn') !== 'true') { window.location.href = 'index.html'; return; }
             if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
@@ -357,7 +363,6 @@
             else if (role === 'COORDINATOR' || role === 'MANAGER') document.body.classList.add('role-manager');
             else document.body.classList.add('role-user');
 
-            // Hide loader
             var loader = document.getElementById('loader');
             if (loader) loader.style.display = 'none';
         };

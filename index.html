@@ -99,6 +99,7 @@
         <a href="#" onclick="gotoView('grades.html', 'topView')" id="nav-topView" ><span>🏆</span>
           <span>لوحة الشرف Top 5</span></a>
         <a href="feedback.html" id="nav-feedbackImport" ><span>💬</span> <span>Feedback شامل</span></a>
+        <a href="TasksForAll.html" style="display:flex;"><span>📋</span> <span>Tasks للكل</span></a>
         <a href="Quizes.html" id="nav-quizes" style="display:flex;"><span>📝</span> <span>Quizes</span></a>
         <a href="#" onclick="gotoView('grades.html', 'settings')" id="nav-settings" ><span>⚙️</span>
           <span>إعدادات النظام</span></a>
@@ -112,7 +113,7 @@
         style="background: rgba(245, 176, 65, 0.1); padding: 8px 15px; font-weight: 900; color: #f5b041; font-size: 12px; letter-spacing: 1px; border-bottom: 1px solid rgba(245, 176, 65, 0.1);">
         ⚙️ الإدارة العليا</div>
       <div style="padding: 5px 0;">
-        <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" ><span>👥</span>
+        <a href="#" onclick="gotoView('index.html', 'users')" id="nav-users" class="admin-only"><span>👥</span>
           <span>إدارة المستخدمين</span></a>
         <a href="#" onclick="gotoView('GradesSpecific.html', 'taskRubric')" id="nav-taskRubric" style="display:flex;"><span>🔧</span>
           <span>تهيئة الـ 70 درجة</span></a>
@@ -131,7 +132,7 @@
     <div class="tab-item" id="tab-manual" onclick="switchView('manual', this)"><span>✍️</span><span> يدوي</span></div>
     <div class="tab-item" id="tab-dashboard" onclick="switchView('dashboard', this)"><span>📊</span><span> متابعة</span>
     </div>
-    <div class="tab-item" id="tab-users" onclick="switchView('users', this)"><span>👥</span><span>
+    <div class="tab-item admin-only" id="tab-users" onclick="switchView('users', this)"><span>👥</span><span>
         إدارة</span></div>
     <div class="tab-item" id="tab-mail" onclick="switchView('mail', this)"><span>📧</span><span>
         إعلان</span></div>

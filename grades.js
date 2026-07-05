@@ -909,12 +909,30 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                 promises.push(fetch(`${centralApi}?action=saveQuiz&qrCode=${code}&quizNum=${lec}&val=${quizVal}${auth}`).then(r => r.json()).catch(e => ({})));
             }
 
-            // 4. Save Extra (feedback, attitude, bonus) - Central
-            let f = document.getElementById('feedBtn').classList.contains('active-feed') ? 1 : 0;
-            let a = document.getElementById('attitBtn').classList.contains('active-attit') ? 5 : 0;
+            // 4. Save Extra (attitude auto from attendance, feedback via import) - Central
+            let a = 0;
+            try {
+                const rAtt = await fetch(`${centralApi}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({}));
+                const attScore = rAtt && rAtt.scores ? rAtt.scores.find(s => s.id === code) : null;
+                if (attScore && parseFloat(attScore.total) >= 15) a = 5;
+            } catch (e) { a = 0; }
             let b = convertNumerals(document.getElementById('valBonus').value) || 0;
+            // Track attitude locally
+            if (a) localStorage.setItem(`att_${code}_${lec}`, '1');
+            else localStorage.removeItem(`att_${code}_${lec}`);
+            // Preserve existing feedback when saving attitude
+            let existingF = 0;
+            try {
+                const rExtra = await fetch(`${centralApi}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json());
+                const extraScore = rExtra && rExtra.scores ? rExtra.scores.find(s => s.id === code) : null;
+                if (extraScore) {
+                    if (extraScore.feedback !== undefined) existingF = parseFloat(extraScore.feedback) >= 1 ? 5 : 0;
+                    else if (parseFloat(extraScore.total) >= 10) existingF = 5;
+                    else if (parseFloat(extraScore.total) >= 5 && localStorage.getItem(`fb_${code}_${lec}`)) existingF = 5;
+                }
+            } catch (e) { }
 
-            promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
+            promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${existingF ? 1 : 0}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
 
             // === SYNC to Individual Student Sheet ===
             let personalApi = getPersonalApi(code);
@@ -937,9 +955,8 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                     );
                 }
 
-                // Extra (attitude + feedback)
+                // Extra (attitude auto from attendance)
                 let combinedAtt = 0;
-                if (f) combinedAtt += 5;
                 if (a) combinedAtt += 5;
 
                 promises.push(
@@ -970,8 +987,6 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
             document.getElementById('valTask').value = "";
             document.getElementById('valQuiz').value = "";
             document.getElementById('valBonus').value = "";
-            document.getElementById('feedBtn').classList.remove('active-feed');
-            document.getElementById('attitBtn').classList.remove('active-attit');
             document.getElementById('studentCode').focus();
 
             showToast("⏳ جاري التسجيل...", "success");
@@ -1041,7 +1056,7 @@ const CENTRAL_LINKS_API = "https://script.google.com/macros/s/AKfycbxFT_0yMGQMp2
                 addRow(rAttend, "إجمالي الحضور");
                 addRow(rTasks, "إجمالي التاسكات");
                 addRow(rQuizzes, "إجمالي الكويزات");
-                addRow(rExtra, "إجمالي (الفيدباك + السلوك + البونص)");
+                addRow(rExtra, "إجمالي (البونص)");
 
                 document.getElementById('searchResult').style.display = 'block';
                 document.getElementById('resDetails').innerHTML = html;
@@ -1447,8 +1462,8 @@ window.openDashboardGradeModal = async function(id) {
     
     // Clear styling on toggle buttons
     document.getElementById('dbModalAttBtn').classList.remove('active-att');
-    document.getElementById('dbModalFeedBtn').classList.remove('active-feed');
-    document.getElementById('dbModalAttitBtn').classList.remove('active-attit');
+    document.getElementById('dbModalFeedBtn').classList.remove('active-att');
+    document.getElementById('dbModalAttitBtn').classList.remove('active-att');
     
     // Show Modal
     const modal = document.getElementById('dbGradeModal');
@@ -1461,11 +1476,12 @@ window.openDashboardGradeModal = async function(id) {
         const api = getEffectiveApi(GRADES_API);
         
         // Fetch current grades for this specific lecture L
-        const [rAttend, rTasks, rQuizzes, rExtra] = await Promise.all([
+        const [rAttend, rTasks, rQuizzes, rExtra, rAllExtra] = await Promise.all([
             fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})),
             fetch(`${api}?action=getTop&fromTask=${lec}&toTask=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
             fetch(`${api}?action=getTop&fromQuiz=${lec}&toQuiz=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
-            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => ({}))
+            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
+            fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => null)
         ]);
         
         const findScore = (res) => (res && res.scores || []).find(x => x.id === id);
@@ -1473,11 +1489,12 @@ window.openDashboardGradeModal = async function(id) {
         const sTask = findScore(rTasks);
         const sQuiz = findScore(rQuizzes);
         const sExtra = findScore(rExtra);
+        const sAllExtra = findScore(rAllExtra);
         
         const attendVal = sAttend ? parseFloat(sAttend.total) : 0;
         const taskVal = sTask && sTask.total !== "" ? parseFloat(sTask.total) : "";
         const quizVal = sQuiz && sQuiz.total !== "" ? parseFloat(sQuiz.total) : "";
-        const extraVal = sExtra ? parseFloat(sExtra.total) : 0;
+        let extraVal = sExtra ? parseFloat(sExtra.total) : 0;
         
         // Attendance
         if (attendVal >= 15) document.getElementById('dbModalAttBtn').classList.add('active-att');
@@ -1488,22 +1505,33 @@ window.openDashboardGradeModal = async function(id) {
         // Quiz
         document.getElementById('dbModalValQuiz').value = quizVal;
         
-        // Extra points decomposition
-        document.getElementById('dbModalFeedBtn').classList.remove('active-feed');
-        document.getElementById('dbModalAttitBtn').classList.remove('active-attit');
-        document.getElementById('dbModalValBonus').value = "";
-        
-        if (extraVal === 5) {
-            document.getElementById('dbModalFeedBtn').classList.add('active-feed');
-        } else if (extraVal === 10) {
-            document.getElementById('dbModalFeedBtn').classList.add('active-feed');
-            document.getElementById('dbModalAttitBtn').classList.add('active-attit');
-        } else if (extraVal > 0) {
-            let rem = extraVal;
-            if (rem >= 5) { document.getElementById('dbModalFeedBtn').classList.add('active-feed'); rem -= 5; }
-            if (rem >= 5) { document.getElementById('dbModalAttitBtn').classList.add('active-attit'); rem -= 5; }
-            if (rem > 0) { document.getElementById('dbModalValBonus').value = rem; }
+    // Extra points: feedback (5) + attitude (5) + bonus
+    // API returns individual columns in rExtra
+    document.getElementById('dbModalFeedBtn').classList.remove('active-att');
+    document.getElementById('dbModalAttitBtn').classList.remove('active-att');
+    document.getElementById('dbModalValBonus').value = "";
+
+    if (sExtra) {
+        // Try individual columns
+        let hasIndividual = sExtra.feedback !== undefined && sExtra.attitude !== undefined;
+        if (hasIndividual) {
+            if (parseFloat(sExtra.feedback) >= 1) document.getElementById('dbModalFeedBtn').classList.add('active-att');
+            if (parseFloat(sExtra.attitude) >= 5) document.getElementById('dbModalAttitBtn').classList.add('active-att');
+            if (parseFloat(sExtra.bonus) > 0) document.getElementById('dbModalValBonus').value = parseFloat(sExtra.bonus);
+        } else {
+            // Fallback: decompose total (feedback=5 + attitude=5) using localStorage hints
+            let rem = parseFloat(sExtra.total) || 0;
+            const hasFb = localStorage.getItem(`fb_${id}_${lec}`);
+            const hasAtt = localStorage.getItem(`att_${id}_${lec}`);
+            if (hasFb && rem >= 5) { document.getElementById('dbModalFeedBtn').classList.add('active-att'); rem -= 5; }
+            if (hasAtt && rem >= 5) { document.getElementById('dbModalAttitBtn').classList.add('active-att'); rem -= 5; }
+            if (!hasFb && !hasAtt) {
+                if (rem >= 10) { document.getElementById('dbModalFeedBtn').classList.add('active-att'); document.getElementById('dbModalAttitBtn').classList.add('active-att'); rem -= 10; }
+                else if (rem >= 5) { document.getElementById('dbModalAttitBtn').classList.add('active-att'); rem -= 5; }
+            }
+            if (rem > 0) document.getElementById('dbModalValBonus').value = rem;
         }
+    }
         
         setModalInputsLoading(false);
     } catch (e) {
@@ -1581,11 +1609,17 @@ window.saveDashboardStudentGrade = async function() {
         promises.push(fetch(`${centralApi}?action=saveQuiz&qrCode=${code}&quizNum=${lec}&val=${quizVal}${auth}`).then(r => r.json()).catch(e => ({})));
     }
     
-    let f = document.getElementById('dbModalFeedBtn').classList.contains('active-feed') ? 1 : 0;
-    let a = document.getElementById('dbModalAttitBtn').classList.contains('active-attit') ? 5 : 0;
+    let f = document.getElementById('dbModalFeedBtn').classList.contains('active-att') ? 5 : 0;
+    let a = document.getElementById('dbModalAttitBtn').classList.contains('active-att') ? 5 : 0;
     let b = convertNumerals(document.getElementById('dbModalValBonus').value) || 0;
     
-    promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
+    // Track feedback + attitude state locally (API may not return individual columns)
+    if (f) localStorage.setItem(`fb_${code}_${lec}`, '1');
+    else localStorage.removeItem(`fb_${code}_${lec}`);
+    if (a) localStorage.setItem(`att_${code}_${lec}`, '1');
+    else localStorage.removeItem(`att_${code}_${lec}`);
+    
+    promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f ? 1 : 0}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
     
     // === SYNC to Individual Student Sheet ===
     let personalApi = getPersonalApi(code);
@@ -1724,13 +1758,16 @@ window.loadExcelDashboardSheet = async function(useCache = true) {
         const auth = getAuthParams();
         const api = getEffectiveApi(GRADES_API);
 
-        // Fetch all 4 categories for the selected lecture
-        const [rAttend, rTasks, rQuizzes, rExtra] = await Promise.all([
+        // Fetch all categories for the selected lecture
+        // rAllExtra tries individual columns (some APIs return feedback/attitude/bonus separately)
+        const [rAttend, rTasks, rQuizzes, rExtra, rAllExtra] = await Promise.all([
             fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}&weight=15${auth}`).then(r => r.json()).catch(e => ({})),
             fetch(`${api}?action=getTop&fromTask=${lec}&toTask=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
             fetch(`${api}?action=getTop&fromQuiz=${lec}&toQuiz=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
-            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => ({}))
+            fetch(`${api}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => ({})),
+            fetch(`${api}?action=getTop&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json()).catch(e => null)
         ]);
+        console.log('🧪 rExtra (extraOnly=1) first score:', rExtra?.scores?.[0], '🔑 keys:', Object.keys(rExtra?.scores?.[0] || {}));
 
         const gradesMap = {};
         // Default grades for everyone
@@ -1758,18 +1795,48 @@ window.loadExcelDashboardSheet = async function(useCache = true) {
         }
         // Extra (Feedback, Attitude, Bonus)
         if (rExtra && rExtra.scores) {
+            const lecKey = document.getElementById('dbLecFrom')?.value || '1';
             rExtra.scores.forEach(s => {
-                const extraVal = parseFloat(s.total) || 0;
                 if (gradesMap[s.id]) {
-                    let rem = extraVal;
-                    if (rem >= 5) { gradesMap[s.id].feedback = 5; rem -= 5; }
-                    if (rem >= 5) { gradesMap[s.id].attitude = 5; rem -= 5; }
-                    if (rem > 0) { gradesMap[s.id].bonus = rem; }
+                    // 1) Individual columns (some APIs return s.feedback / s.attitude)
+                    if (s.feedback !== undefined) {
+                        gradesMap[s.id].feedback = parseFloat(s.feedback) >= 1 ? 5 : 0;
+                    }
+                    if (s.attitude !== undefined) {
+                        gradesMap[s.id].attitude = parseFloat(s.attitude) >= 5 ? 5 : 0;
+                    }
+                    if (s.bonus !== undefined) {
+                        gradesMap[s.id].bonus = parseFloat(s.bonus) || 0;
+                    }
+                    
+                    // 2) Fallback: decompose total if individual columns not available
+                    if (s.feedback === undefined || s.attitude === undefined) {
+                        const total = parseFloat(s.total) || 0;
+                        const hasFb = localStorage.getItem(`fb_${s.id}_${lecKey}`);
+                        const hasAtt = localStorage.getItem(`att_${s.id}_${lecKey}`);
+                        
+                        if (hasFb) gradesMap[s.id].feedback = 5;
+                        if (hasAtt) gradesMap[s.id].attitude = 5;
+                        
+                        if (!hasFb && !hasAtt) {
+                            // No localStorage hints: use total-based heuristics
+                            if (total >= 10) { gradesMap[s.id].feedback = 5; gradesMap[s.id].attitude = 5; }
+                            else if (total >= 5) { gradesMap[s.id].attitude = 5; }
+                        } else if (hasFb && !hasAtt) {
+                            // Only feedback: remaining goes to bonus
+                            gradesMap[s.id].attitude = 0;
+                        } else if (hasAtt && !hasFb) {
+                            gradesMap[s.id].feedback = 0;
+                        }
+                        gradesMap[s.id].bonus = Math.max(0, total - gradesMap[s.id].feedback - gradesMap[s.id].attitude);
+                    }
                 }
             });
         }
 
         window.excelGradesMap = gradesMap;
+        console.log('🧪 gradesMap sample:', window.dashboardStudents?.[0]?.id, gradesMap[window.dashboardStudents?.[0]?.id]);
+        console.log('🧪 excelGradesMap N2:', window.excelGradesMap['N2EDUR9'], 'feedback', window.excelGradesMap['N2EDUR9']?.feedback, 'attitude', window.excelGradesMap['N2EDUR9']?.attitude);
         renderExcelGrid();
         calculateSubmitPct();
     } catch (e) {
@@ -1977,10 +2044,16 @@ window.saveAllExcelRows = async function() {
         const attActive = document.getElementById(`excel-att-${code}`)?.checked || false;
         let taskValRaw = document.getElementById(`excel-task-${code}`)?.value.trim() || "";
         let quizValRaw = document.getElementById(`excel-quiz-${code}`)?.value.trim() || "";
-        const f = document.getElementById(`excel-feed-${code}`)?.checked ? 1 : 0;
+        const f = document.getElementById(`excel-feed-${code}`)?.checked ? 5 : 0;
         const a = document.getElementById(`excel-attit-${code}`)?.checked ? 5 : 0;
         let bVal = document.getElementById(`excel-bonus-${code}`)?.value.trim() || "";
         const b = convertNumerals(bVal) || 0;
+
+        // Track feedback + attitude state locally
+        if (f) localStorage.setItem(`fb_${code}_${lec}`, '1');
+        else localStorage.removeItem(`fb_${code}_${lec}`);
+        if (a) localStorage.setItem(`att_${code}_${lec}`, '1');
+        else localStorage.removeItem(`att_${code}_${lec}`);
 
         if (taskValRaw === "") taskValRaw = "0";
         if (quizValRaw === "") quizValRaw = "0";
@@ -2005,7 +2078,9 @@ window.saveAllExcelRows = async function() {
             promises.push(fetch(`${centralApi}?action=saveQuiz&qrCode=${code}&quizNum=${lec}&val=${quizVal}${auth}`).then(r => r.json()).catch(e => ({})));
         }
 
-        promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
+        const saveUrl = `${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f ? 1 : 0}&attitude=${a}&bonus=${b}${auth}`;
+        console.log('🔍 saveAllExcelRows saveExtra URL:', saveUrl);
+        promises.push(fetch(saveUrl).then(r => r.json().then(j => { console.log('🔍 saveAllExcelRows response:', j); return j; })).catch(e => ({})));
 
         let personalApi = getPersonalApi(code);
         if (personalApi) {
@@ -2071,10 +2146,16 @@ window.saveExcelRow = async function(id) {
     const attActive = document.getElementById(`excel-att-${id}`).checked;
     let taskValRaw = document.getElementById(`excel-task-${id}`).value.trim();
     let quizValRaw = document.getElementById(`excel-quiz-${id}`).value.trim();
-    const f = document.getElementById(`excel-feed-${id}`).checked ? 1 : 0;
+    const f = document.getElementById(`excel-feed-${id}`).checked ? 5 : 0;
     const a = document.getElementById(`excel-attit-${id}`).checked ? 5 : 0;
     let bVal = document.getElementById(`excel-bonus-${id}`).value.trim();
     const b = convertNumerals(bVal) || 0;
+
+    // Track feedback + attitude state locally
+    if (f) localStorage.setItem(`fb_${code}_${lec}`, '1');
+    else localStorage.removeItem(`fb_${code}_${lec}`);
+    if (a) localStorage.setItem(`att_${code}_${lec}`, '1');
+    else localStorage.removeItem(`att_${code}_${lec}`);
 
     let isTaskEmpty = (taskValRaw === "");
     let isQuizEmpty = (quizValRaw === "");
@@ -2123,7 +2204,9 @@ window.saveExcelRow = async function(id) {
     }
 
     // 4. Save Extras (Feedback, Attitude, Bonus)
-    promises.push(fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f}&attitude=${a}&bonus=${b}${auth}`).then(r => r.json()).catch(e => ({})));
+    const saveUrl = `${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=${f ? 1 : 0}&attitude=${a}&bonus=${b}${auth}`;
+    console.log('🔍 saveExcelRow saveExtra URL:', saveUrl);
+    promises.push(fetch(saveUrl).then(r => r.json().then(j => { console.log('🔍 saveExcelRow response:', j); return j; })).catch(e => ({})));
 
     // === SYNC to Personal Sheet ===
     let personalApi = getPersonalApi(code);
@@ -2282,6 +2365,24 @@ window.processFeedbackImport = async function() {
             console.log(`فشل جلب بيانات الحضور لـ ${groupName}`);
         }
 
+        // Fetch existing extra data to preserve attitude when syncing feedback to personal sheets
+        let existingExtraMap = {};
+        let hasIndividualCols = false;
+        try {
+            const extraResp = await fetch(`${centralApi}?action=getTop&extraOnly=1&fromLec=${lec}&toLec=${lec}${auth}`).then(r => r.json());
+            if (extraResp && extraResp.scores) {
+                hasIndividualCols = extraResp.scores[0] && extraResp.scores[0].attitude !== undefined;
+                for (const s of extraResp.scores) {
+                    if (hasIndividualCols) {
+                        existingExtraMap[s.id] = parseFloat(s.attitude) || 0;
+                    } else {
+                        // Fallback for old APIs that only return total
+                        existingExtraMap[s.id] = parseFloat(s.total) || 0;
+                    }
+                }
+            }
+        } catch (e) { /* ignore */ }
+
         let results = { success: 0, fail: 0, skipped: 0, crossed: 0 };
         let logLines = [];
 
@@ -2298,8 +2399,32 @@ window.processFeedbackImport = async function() {
                 continue;
             }
             try {
-                const res = await fetch(`${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=0&bonus=0${auth}`).then(r => r.json());
+                    // Preserve existing attitude in master sheet (attitude .5 column)
+                    // Attitude=5 from scan OR from manual dashboard entry
+                    let existingExtra = existingExtraMap[code] || 0;
+                    let existingAttitude;
+                    if (hasIndividualCols) {
+                        // API returns attitude individually: use actual value
+                        existingAttitude = existingExtra >= 5 ? 5 : 0;
+                    } else {
+                        // Old API (total only): use attendance as fallback
+                        existingAttitude = (attendanceMap[code] || existingExtra >= 10) ? 5 : 0;
+                    }
+                    const saveExtraUrl = `${centralApi}?action=saveExtra&qrCode=${code}&lectureNum=${lec}&feedback=1&attitude=${existingAttitude}&bonus=0${auth}`;
+                    console.log('🔍 feedbackImport saveExtra URL:', saveExtraUrl);
+                    const res = await fetch(saveExtraUrl).then(r => r.json());
+                    console.log('🔍 feedbackImport response:', res);
                 if (res.status === 'success') {
+                    // Track feedback + attitude state locally
+                    localStorage.setItem(`fb_${code}_${lec}`, '1');
+                    if (existingAttitude >= 5) localStorage.setItem(`att_${code}_${lec}`, '1');
+                    else localStorage.removeItem(`att_${code}_${lec}`);
+                    // Sync to personal sheet: combine existing attitude(5) + feedback(5)
+                    const combinedAtt = existingAttitude + 5; // feedback 5
+                    let personalApi = getPersonalApi(code);
+                    if (personalApi) {
+                        await fetch(`${personalApi}?action=update&qrCode=${code}&taskName=${encodeURIComponent('TASK ' + lec)}&category=${encodeURIComponent('attitude .10')}&val=${combinedAtt}`).then(r => r.json()).catch(e => {});
+                    }
                     results.success++;
                     logLines.push(`✅ [${groupName}] ${code} - تم`);
                 } else {

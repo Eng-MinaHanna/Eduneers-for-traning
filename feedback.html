@@ -58,6 +58,7 @@
                 <a href="#" onclick="gotoView('grades.html', 'studentDashboard')"><span>📊</span> <span>لوحة درجات الطلاب</span></a>
                 <a href="#" onclick="gotoView('grades.html', 'searchView')"><span>🔍</span> <span>استعلام عن طالب</span></a>
                 <a href="feedback.html"  style="display:flex;"><span>💬</span> <span>Feedback شامل</span></a>
+                <a href="TasksForAll.html" style="display:flex;"><span>📋</span> <span>Tasks للكل</span></a>
                 <a href="Quizes.html"  style="display:flex;"><span>📝</span> <span>Quizes</span></a>
             </div>
         </div>
@@ -358,6 +359,23 @@
                     console.log('فشل جلب بيانات الحضور لـ ' + groupName);
                 }
 
+                // Fetch existing extra data to preserve attitude when syncing feedback to personal sheets
+                var existingExtraMap = {};
+                var hasIndividualCols = false;
+                try {
+                    var extraResp = await fetch(centralApi + '?action=getTop&extraOnly=1&fromLec=' + lec + '&toLec=' + lec + auth).then(function (r) { return r.json(); });
+                    if (extraResp && extraResp.scores) {
+                        hasIndividualCols = extraResp.scores[0] && extraResp.scores[0].attitude !== undefined;
+                        for (var ex = 0; ex < extraResp.scores.length; ex++) {
+                            if (hasIndividualCols) {
+                                existingExtraMap[extraResp.scores[ex].id] = parseFloat(extraResp.scores[ex].attitude) || 0;
+                            } else {
+                                existingExtraMap[extraResp.scores[ex].id] = parseFloat(extraResp.scores[ex].total) || 0;
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
                 var results = { success: 0, fail: 0, skipped: 0, crossed: 0 };
                 var logLines = [];
 
@@ -375,8 +393,27 @@
                         continue;
                     }
                     try {
-                        var res = await fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=1&attitude=0&bonus=0' + auth).then(function (r) { return r.json(); });
+                        var existingExtra = existingExtraMap[code] || 0;
+                        // Preserve existing attitude in master sheet (attitude .5 column)
+                        var existingAttitude;
+                        if (hasIndividualCols) {
+                            existingAttitude = existingExtra >= 5 ? 5 : 0;
+                        } else {
+                            existingAttitude = (attendanceMap[code] || existingExtra >= 10) ? 5 : 0;
+                        }
+                        var res = await fetch(centralApi + '?action=saveExtra&qrCode=' + encodeURIComponent(code) + '&lectureNum=' + lec + '&feedback=1&attitude=' + existingAttitude + '&bonus=0' + auth).then(function (r) { return r.json(); });
                         if (res.status === 'success') {
+                            // Track feedback + attitude state locally
+                            localStorage.setItem('fb_' + code + '_' + lec, '1');
+                            if (existingAttitude >= 5) localStorage.setItem('att_' + code + '_' + lec, '1');
+                            else localStorage.removeItem('att_' + code + '_' + lec);
+                            // Sync to personal sheet: combine existing attitude(5) + feedback(5)
+                            var combinedAtt = existingAttitude + 5;
+                            var linksMap = JSON.parse(localStorage.getItem('PERSONAL_LINKS_MAP') || '{}');
+                            var personalApi = linksMap[code] || localStorage.getItem('PERSONAL_API') || '';
+                            if (personalApi) {
+                                await fetch(personalApi + '?action=update&qrCode=' + encodeURIComponent(code) + '&taskName=' + encodeURIComponent('TASK ' + lec) + '&category=' + encodeURIComponent('attitude .10') + '&val=' + combinedAtt).then(function (r) { return r.json(); }).catch(function () {});
+                            }
                             results.success++;
                             logLines.push('✅ [' + groupName + '] ' + code + ' - تم');
                         } else {
